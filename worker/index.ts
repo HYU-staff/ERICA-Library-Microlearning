@@ -29,6 +29,41 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const email = request.headers.get("oai-authenticated-user-email");
+    const encodedName = request.headers.get("oai-authenticated-user-full-name");
+    const name = encodedName && request.headers.get("oai-authenticated-user-full-name-encoding") === "percent-encoded-utf-8" ? decodeURIComponent(encodedName) : null;
+
+    if (url.pathname === "/api/analytics/event" && request.method === "POST") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const body = await request.json<{ type?: string; videoTitle?: string }>();
+      if (body.type !== "video_view" || !body.videoTitle) return Response.json({ error: "Invalid event" }, { status: 400 });
+      const now = new Date().toISOString();
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO analytics_users (email, name, first_seen, last_seen, access_count) VALUES (?, ?, ?, ?, 0) ON CONFLICT(email) DO UPDATE SET name = COALESCE(excluded.name, analytics_users.name), last_seen = excluded.last_seen").bind(email, name, now, now),
+        env.DB.prepare("INSERT INTO analytics_events (email, event_type, video_title, created_at) VALUES (?, 'video_view', ?, ?)").bind(email, body.videoTitle, now),
+      ]);
+      return Response.json({ ok: true });
+    }
+
+    if (url.pathname === "/api/analytics/summary" && request.method === "GET") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const adminCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM site_admins").first<{ count: number }>();
+      if (!adminCount?.count) await env.DB.prepare("INSERT INTO site_admins (email, created_at) VALUES (?, ?)").bind(email, new Date().toISOString()).run();
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
+
+      const [usersCount, accessCount, videoViews, todayUsers, users, popularVideos] = await Promise.all([
+        env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_users").first<{ value: number }>(),
+        env.DB.prepare("SELECT COALESCE(SUM(access_count), 0) AS value FROM analytics_users").first<{ value: number }>(),
+        env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = 'video_view'").first<{ value: number }>(),
+        env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_users WHERE last_seen >= ?").bind(new Date(Date.now() - 86400000).toISOString()).first<{ value: number }>(),
+        env.DB.prepare("SELECT u.email, u.name, u.first_seen AS firstSeen, u.last_seen AS lastSeen, u.access_count AS accessCount, COUNT(e.id) AS videoViews, MAX(e.video_title) AS lastVideo FROM analytics_users u LEFT JOIN analytics_events e ON e.email = u.email AND e.event_type = 'video_view' GROUP BY u.email ORDER BY u.last_seen DESC LIMIT 100").all(),
+        env.DB.prepare("SELECT video_title AS title, COUNT(*) AS views FROM analytics_events WHERE event_type = 'video_view' GROUP BY video_title ORDER BY views DESC LIMIT 8").all(),
+      ]);
+      return Response.json({ metrics: { users: usersCount?.value ?? 0, accesses: accessCount?.value ?? 0, videoViews: videoViews?.value ?? 0, activeToday: todayUsers?.value ?? 0 }, users: users.results, popularVideos: popularVideos.results, adminEmail: email });
+    }
 
     if (url.pathname.startsWith("/media/")) {
       const key = decodeURIComponent(url.pathname.slice("/media/".length));
@@ -97,8 +132,31 @@ const worker = {
       }, allowedWidths);
     }
 
+    if (url.pathname === "/" && request.method === "GET" && email) {
+      ctx.waitUntil(recordPageAccess(env.DB, email, name));
+    }
     return handler.fetch(request, env, ctx);
   },
 };
+
+async function ensureAnalyticsSchema(db: D1Database) {
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS analytics_users (email TEXT PRIMARY KEY NOT NULL, name TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, access_count INTEGER NOT NULL DEFAULT 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS analytics_events (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, email TEXT NOT NULL, event_type TEXT NOT NULL, video_title TEXT, created_at TEXT NOT NULL)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_email_idx ON analytics_events (email)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_type_idx ON analytics_events (event_type)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events (created_at)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS site_admins (email TEXT PRIMARY KEY NOT NULL, created_at TEXT NOT NULL)"),
+  ]);
+}
+
+async function recordPageAccess(db: D1Database, email: string, name: string | null) {
+  await ensureAnalyticsSchema(db);
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare("INSERT INTO analytics_users (email, name, first_seen, last_seen, access_count) VALUES (?, ?, ?, ?, 1) ON CONFLICT(email) DO UPDATE SET name = COALESCE(excluded.name, analytics_users.name), last_seen = excluded.last_seen, access_count = analytics_users.access_count + 1").bind(email, name, now, now),
+    db.prepare("INSERT INTO analytics_events (email, event_type, created_at) VALUES (?, 'page_access', ?)").bind(email, now),
+  ]);
+}
 
 export default worker;

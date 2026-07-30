@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Lang = "ko" | "en";
-type Video = { title: string; topic: string; level: "입문" | "기초" | "심화"; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
+type Video = { title: string; topic: string; level: "입문" | "기초" | "심화"; levels?: ("입문" | "기초" | "심화")[]; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
 
 const videos: Video[] = [
+  { title:"연구자를 위한 학술정보관 이용 가이드", topic:"학술정보", level:"입문", levels:["입문","기초"], audience:["대학원생","교직원"], minutes:15, color:"coral", mark:"R1", description:"대학원생과 교직원이 학술정보관의 연구 지원 서비스를 처음부터 차근차근 활용하도록 안내해요.", mediaKey:"researcher-academic-library-guide.mp4" },
   { title:"학정관 첫걸음", topic:"도서관 이용", level:"입문", audience:["학부생"], minutes:8, color:"green", mark:"H1", description:"학정관을 처음 이용하는 학부생을 위한 핵심 이용 안내예요.", mediaKey:"hakjeonggwan-first-steps.mp4" },
   { title:"학정관 시설안내", topic:"도서관 이용", level:"입문", audience:["학부생"], minutes:6, color:"mint", mark:"H2", description:"열람 공간과 주요 시설의 위치와 이용 방법을 둘러봐요.", mediaKey:"hakjeonggwan-facilities.mp4" },
   { title:"학정관 자료이용", topic:"자료검색", level:"기초", audience:["학부생"], minutes:12, color:"blue", mark:"H3", description:"학정관 자료를 찾고 대출하며 활용하는 과정을 차근차근 알아봐요.", mediaKey:"hakjeonggwan-resources.mp4" },
@@ -19,6 +20,7 @@ const videos: Video[] = [
 ];
 
 const enVideo: Record<string, { title:string; description:string }> = {
+  "연구자를 위한 학술정보관 이용 가이드":{ title:"Academic Library Guide for Researchers", description:"A step-by-step introduction to academic library research services for graduate students, faculty, and staff." },
   "학정관 첫걸음":{ title:"First Steps at Hakjeonggwan", description:"An essential introduction for undergraduates visiting Hakjeonggwan for the first time." },
   "학정관 시설안내":{ title:"Hakjeonggwan Facilities Guide", description:"Tour the reading areas and learn how to use the building's main facilities." },
   "학정관 자료이용":{ title:"Using Hakjeonggwan Resources", description:"Learn how to find, borrow, and make the most of Hakjeonggwan materials." },
@@ -64,7 +66,7 @@ export default function Home() {
   const displayTopic = (value:string)=>lang==="ko"?value:topicNames[value];
   useEffect(()=>{ document.documentElement.lang=lang; },[lang]);
 
-  const recommendation = useMemo(()=>[...videos].sort((a,b)=>{ const score=(v:Video)=>(v.audience.includes(identity)?3:0)+(v.level===level?2:0)+(v.topic===interest?4:0); return score(b)-score(a); }).slice(0,3),[identity,level,interest]);
+  const recommendation = useMemo(()=>[...videos].sort((a,b)=>{ const score=(v:Video)=>(v.audience.includes(identity)?3:0)+((v.levels??[v.level]).includes(level)?2:0)+(v.topic===interest?4:0)+(v.mediaKey&&v.audience.includes(identity)&&(v.levels??[v.level]).includes(level)?5:0); return score(b)-score(a); }).slice(0,3),[identity,level,interest]);
   const filtered = topic==="전체"?videos:videos.filter((video)=>video.topic===topic);
   const toggleSave=(title:string)=>setSaved((current)=>current.includes(title)?current.filter((item)=>item!==title):[...current,title]);
   const chooseLang=(next:Lang)=>{ setLang(next); setShowResult(false); };
@@ -92,5 +94,5 @@ export default function Home() {
 
 function VideoCard({video,lang,saved,onSave}:{video:Video;lang:Lang;saved:boolean;onSave:()=>void}){
   const [playing,setPlaying]=useState(false); const t=copy[lang]; const translated=enVideo[video.title]; const title=lang==="ko"?video.title:translated.title; const description=lang==="ko"?video.description:translated.description;
-  return <article className="video-card"><div className={`thumbnail ${video.color} ${playing?"is-playing":""}`}>{playing&&video.mediaKey?<video controls autoPlay playsInline src={`/media/${encodeURIComponent(video.mediaKey)}`}/>:<><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={()=>video.mediaKey?setPlaying(true):alert(t.play(title))}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></>} </div><div className="video-info"><div className="tags"><span>{lang==="ko"?video.topic:topicNames[video.topic]}</span><span>{lang==="ko"?video.level:levelNames[video.level]}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
+  return <article className="video-card"><div className={`thumbnail ${video.color} ${playing?"is-playing":""}`}>{playing&&video.mediaKey?<video controls autoPlay playsInline src={`/media/${encodeURIComponent(video.mediaKey)}`}/>:<><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={()=>video.mediaKey?setPlaying(true):alert(t.play(title))}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></>} </div><div className="video-info"><div className="tags"><span>{lang==="ko"?video.topic:topicNames[video.topic]}</span><span>{(video.levels??[video.level]).map((item)=>lang==="ko"?item:levelNames[item]).join(" · ")}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
 }

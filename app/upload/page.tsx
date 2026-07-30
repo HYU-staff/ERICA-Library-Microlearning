@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 const keyMap: Record<string, string> = {
+  "연구자를 위한 학술정보관 이용 가이드.mp4": "researcher-academic-library-guide.mp4",
   "학정관 자료이용.mp4": "hakjeonggwan-resources.mp4",
   "학정관 꿀팁.mp4": "hakjeonggwan-tips.mp4",
   "학정관 첫걸음.mp4": "hakjeonggwan-first-steps.mp4",
@@ -44,7 +45,7 @@ export default function VideoUploadPage() {
         if (!complete.ok) throw new Error(await complete.text());
       }
       setProgress(100);
-      setStatus("네 개 영상 업로드를 완료했습니다.");
+      setStatus(`${files.length}개 영상 업로드를 완료했습니다.`);
     } catch (error) {
       setStatus(`업로드 실패: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -52,5 +53,5 @@ export default function VideoUploadPage() {
     }
   };
 
-  return <main className="upload-page"><section><p className="kicker">VIDEO UPLOAD</p><h1>학정관 교육 영상 업로드</h1><p>지정된 네 개 MP4 파일을 모두 선택한 뒤 업로드를 시작하세요.</p><input id="video-files" type="file" accept="video/mp4" multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []))}/><div className="upload-list">{files.map((file) => <span key={file.name}>{file.name} · {(file.size / 1024 / 1024).toFixed(1)}MB</span>)}</div><button id="upload-button" disabled={uploading || files.length !== 4} onClick={upload}>{uploading ? "업로드 중…" : "네 개 영상 업로드"}</button><div className="progress-track"><i style={{ width: `${progress}%` }}/></div><output>{status}</output></section></main>;
+  return <main className="upload-page"><section><p className="kicker">VIDEO UPLOAD</p><h1>학정관 교육 영상 업로드</h1><p>등록할 MP4 파일을 하나 이상 선택한 뒤 업로드를 시작하세요.</p><input id="video-files" type="file" accept="video/mp4" multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []))}/><div className="upload-list">{files.map((file) => <span key={file.name}>{file.name} · {(file.size / 1024 / 1024).toFixed(1)}MB</span>)}</div><button id="upload-button" disabled={uploading || files.length === 0} onClick={upload}>{uploading ? "업로드 중…" : `${files.length || 1}개 영상 업로드`}</button><div className="progress-track"><i style={{ width: `${progress}%` }}/></div><output>{status}</output></section></main>;
 }

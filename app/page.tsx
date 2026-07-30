@@ -3,9 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Lang = "ko" | "en";
-type Video = { title: string; topic: string; level: "입문" | "기초" | "심화"; audience: string[]; minutes: number; color: string; mark: string; description: string };
+type Video = { title: string; topic: string; level: "입문" | "기초" | "심화"; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
 
 const videos: Video[] = [
+  { title:"학정관 첫걸음", topic:"도서관 이용", level:"입문", audience:["학부생"], minutes:8, color:"green", mark:"H1", description:"학정관을 처음 이용하는 학부생을 위한 핵심 이용 안내예요.", mediaKey:"hakjeonggwan-first-steps.mp4" },
+  { title:"학정관 시설안내", topic:"도서관 이용", level:"입문", audience:["학부생"], minutes:6, color:"mint", mark:"H2", description:"열람 공간과 주요 시설의 위치와 이용 방법을 둘러봐요.", mediaKey:"hakjeonggwan-facilities.mp4" },
+  { title:"학정관 자료이용", topic:"자료검색", level:"기초", audience:["학부생"], minutes:12, color:"blue", mark:"H3", description:"학정관 자료를 찾고 대출하며 활용하는 과정을 차근차근 알아봐요.", mediaKey:"hakjeonggwan-resources.mp4" },
+  { title:"학정관 꿀팁", topic:"도서관 이용", level:"기초", audience:["학부생"], minutes:7, color:"violet", mark:"H4", description:"학부생이 알아두면 유용한 학정관 이용 팁을 모았어요.", mediaKey:"hakjeonggwan-tips.mp4" },
   { title:"도서관, 처음이라면", topic:"도서관 이용", level:"입문", audience:["학부생","대학원생","교직원","지역주민"], minutes:7, color:"mint", mark:"01", description:"대출부터 좌석 예약까지, 꼭 필요한 이용법만 빠르게 익혀요." },
   { title:"과제 자료를 더 잘 찾는 법", topic:"자료검색", level:"기초", audience:["학부생"], minutes:12, color:"blue", mark:"02", description:"주제어 만들기와 통합검색 활용법을 실제 과제로 연습해요." },
   { title:"학술 DB 검색 전략", topic:"학술정보", level:"심화", audience:["대학원생","교직원"], minutes:18, color:"violet", mark:"03", description:"검색식을 설계하고 국내외 학술 DB를 효율적으로 탐색해요." },
@@ -15,6 +19,10 @@ const videos: Video[] = [
 ];
 
 const enVideo: Record<string, { title:string; description:string }> = {
+  "학정관 첫걸음":{ title:"First Steps at Hakjeonggwan", description:"An essential introduction for undergraduates visiting Hakjeonggwan for the first time." },
+  "학정관 시설안내":{ title:"Hakjeonggwan Facilities Guide", description:"Tour the reading areas and learn how to use the building's main facilities." },
+  "학정관 자료이용":{ title:"Using Hakjeonggwan Resources", description:"Learn how to find, borrow, and make the most of Hakjeonggwan materials." },
+  "학정관 꿀팁":{ title:"Hakjeonggwan Pro Tips", description:"A collection of useful Hakjeonggwan tips every undergraduate should know." },
   "도서관, 처음이라면":{ title:"New to the Library?", description:"Learn the essentials—from borrowing books to reserving a study seat." },
   "과제 자료를 더 잘 찾는 법":{ title:"Find Better Sources for Assignments", description:"Practice building keywords and using integrated search with a real assignment." },
   "학술 DB 검색 전략":{ title:"Academic Database Search Strategies", description:"Design search queries and explore domestic and international databases efficiently." },
@@ -83,6 +91,6 @@ export default function Home() {
 }
 
 function VideoCard({video,lang,saved,onSave}:{video:Video;lang:Lang;saved:boolean;onSave:()=>void}){
-  const t=copy[lang]; const translated=enVideo[video.title]; const title=lang==="ko"?video.title:translated.title; const description=lang==="ko"?video.description:translated.description;
-  return <article className="video-card"><div className={`thumbnail ${video.color}`}><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={()=>alert(t.play(title))}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></div><div className="video-info"><div className="tags"><span>{lang==="ko"?video.topic:topicNames[video.topic]}</span><span>{lang==="ko"?video.level:levelNames[video.level]}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
+  const [playing,setPlaying]=useState(false); const t=copy[lang]; const translated=enVideo[video.title]; const title=lang==="ko"?video.title:translated.title; const description=lang==="ko"?video.description:translated.description;
+  return <article className="video-card"><div className={`thumbnail ${video.color} ${playing?"is-playing":""}`}>{playing&&video.mediaKey?<video controls autoPlay playsInline src={`/media/${encodeURIComponent(video.mediaKey)}`}/>:<><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={()=>video.mediaKey?setPlaying(true):alert(t.play(title))}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></>} </div><div className="video-info"><div className="tags"><span>{lang==="ko"?video.topic:topicNames[video.topic]}</span><span>{lang==="ko"?video.level:levelNames[video.level]}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
 }

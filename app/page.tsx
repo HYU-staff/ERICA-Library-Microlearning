@@ -47,7 +47,10 @@ export default function Home() {
   const [topic,setTopic] = useState("전체");
   const [showResult,setShowResult] = useState(false);
   const [saved,setSaved] = useState<string[]>([]);
-  const t = copy[lang];
+  const t = {
+    ...copy[lang],
+    brand: lang === "ko" ? "학정관 조각공부" : "Hakjeonggwan Microlearning",
+  };
   const displayIdentity = (value:string)=>lang==="ko"?value:identityNames[value];
   const displayLevel = (value:string)=>lang==="ko"?value:levelNames[value];
   const displayTopic = (value:string)=>lang==="ko"?value:topicNames[value];

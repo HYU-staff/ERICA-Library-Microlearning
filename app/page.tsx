@@ -74,7 +74,7 @@ export default function Home() {
 
   return <main className="dark-site">
     <header className="site-header">
-      <a className="brand" href="#top" aria-label={`${t.brand} home`}><span className="brand-mark"><i/><i/><i/></span><span>{t.brand}</span></a>
+      <a className="brand" href="#top" aria-label={`${t.brand} home`}><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>{t.brand}</span></a>
       <nav aria-label={lang==="ko"?"주요 메뉴":"Main menu"}><a href="#recommend">{t.navRecommend}</a><a href="#archive">{t.navArchive}</a><a href="#guide">{t.navGuide}</a></nav>
       <div className="header-actions"><div className="language-switch" role="group" aria-label={lang==="ko"?"언어 선택":"Language selector"}><button className={lang==="ko"?"active":""} onClick={()=>chooseLang("ko")} aria-pressed={lang==="ko"}>한국어</button><button className={lang==="en"?"active":""} onClick={()=>chooseLang("en")} aria-pressed={lang==="en"}>English</button></div><button className="my-learning" onClick={()=>alert(t.savedAlert(saved.length))}>{t.myLearning} <span>{saved.length}</span></button></div>
     </header>
@@ -88,7 +88,7 @@ export default function Home() {
     <section className="archive-section" id="archive"><div className="section-heading archive-heading"><div><p className="kicker">VIDEO ARCHIVE</p><h2>{t.archiveTitle.split("\n").map((line,i)=><span key={line}>{line}{i===0&&<br/>}</span>)}</h2></div><p>{t.archiveDesc.split("\n").map((line,i)=><span key={line}>{line}{i===0&&<br/>}</span>)}</p></div><div className="topic-tabs" role="tablist" aria-label={lang==="ko"?"영상 주제":"Video topics"}>{topics.map((item)=><button role="tab" aria-selected={topic===item} className={topic===item?"active":""} onClick={()=>setTopic(item)} key={item}>{displayTopic(item)}</button>)}</div><div className="video-grid">{filtered.map((video)=><VideoCard key={video.title} video={video} lang={lang} saved={saved.includes(video.title)} onSave={()=>toggleSave(video.title)}/>)}</div></section>
 
     <section className="guide-section" id="guide"><div><p className="kicker">START SMALL, GROW DEEP</p><h2>{t.guideTitle.split("\n").map((line,i)=><span key={line}>{line}{i===0&&<br/>}</span>)}</h2></div><ol>{t.guides.map((guide,index)=><li key={guide[0]}><span>{index+1}</span><div><strong>{guide[0]}</strong><p>{guide[1]}</p></div></li>)}</ol></section>
-    <footer><a className="brand" href="#top"><span className="brand-mark"><i/><i/><i/></span><span>{t.brand}</span></a><p>{t.footer}</p><span>© 2026 LIBRARY LEARNING COMMONS</span></footer>
+    <footer><a className="brand" href="#top"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>{t.brand}</span></a><p>{t.footer}</p><span>© 2026 LIBRARY LEARNING COMMONS</span></footer>
   </main>;
 }
 

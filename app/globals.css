@@ -81,7 +81,7 @@ body { background:#f5f6f7; color:#202124; font-family:Arial,"Pretendard","Noto S
 .brand-mark i { display:none; }
 .brand-mark:has(img) { width:38px; height:38px; border-radius:50%; background:transparent; overflow:hidden; }
 .brand-mark:has(img):before { content:none; }
-.brand-mark img { display:block; width:100%; height:100%; object-fit:contain; }
+.brand-mark img { display:block; width:100%; height:100%; object-fit:contain; filter:brightness(0) invert(1); }
 nav { gap:34px; color:#333; font-weight:600; }
 nav a:after { background:#03c75a; }
 .my-learning { border:1px solid #dfe3e6; background:#fff; color:#333; }

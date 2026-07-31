@@ -198,6 +198,7 @@ async function ensureAnalyticsSchema(db: D1Database) {
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events (created_at)"),
     db.prepare("CREATE TABLE IF NOT EXISTS site_admins (email TEXT PRIMARY KEY NOT NULL, created_at TEXT NOT NULL)"),
     db.prepare("INSERT OR IGNORE INTO site_admins (email, created_at) VALUES ('belief@hanyang.ac.kr', '2026-07-31T00:00:00.000Z')"),
+    db.prepare("INSERT OR IGNORE INTO site_admins (email, created_at) VALUES ('kalz@hanyang.ac.kr', '2026-07-31T00:00:00.000Z')"),
     db.prepare("CREATE TABLE IF NOT EXISTS content_videos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, minutes INTEGER NOT NULL, media_key TEXT NOT NULL UNIQUE, audiences TEXT NOT NULL, levels TEXT NOT NULL, topics TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)"),
     db.prepare("CREATE INDEX IF NOT EXISTS content_videos_created_idx ON content_videos (created_at)"),
   ]);

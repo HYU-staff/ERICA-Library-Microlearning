@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>ChatGPT for Academic Researchers 신청 안내</title>
+  <style>
+    :root{
+      --navy:#102a43;
+      --blue:#1f5fbf;
+      --blue2:#eaf2ff;
+      --teal:#0f766e;
+      --green:#e9f8f3;
+      --gold:#fff7df;
+      --red:#a61b1b;
+      --red-bg:#fff0f0;
+      --ink:#1d2733;
+      --muted:#66788a;
+      --line:#dce4ec;
+      --bg:#f4f7fa;
+      --white:#ffffff;
+      --shadow:0 10px 28px rgba(16,42,67,.10);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif;
+      line-height:1.65;
+      word-break:keep-all;
+    }
+    a{color:inherit}
+    .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+    .hero{
+      background:linear-gradient(135deg,#102a43 0%,#164e8b 58%,#0f766e 100%);
+      color:#fff;border-radius:24px;padding:42px 42px 36px;box-shadow:var(--shadow);
+      position:relative;overflow:hidden
+    }
+    .hero:after{
+      content:"";position:absolute;width:280px;height:280px;border-radius:50%;
+      right:-95px;top:-120px;background:rgba(255,255,255,.08)
+    }
+    .eyebrow{font-size:14px;font-weight:800;letter-spacing:.08em;opacity:.88}
+    h1{font-size:36px;line-height:1.25;margin:10px 0 14px;letter-spacing:-.035em}
+    .hero p{margin:0;max-width:780px;font-size:17px;opacity:.95}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;position:relative;z-index:1}
+    .btn{
+      display:inline-block;text-decoration:none;font-weight:800;border-radius:12px;
+      padding:13px 18px;border:1px solid rgba(255,255,255,.45)
+    }
+    .btn.primary{background:#fff;color:var(--navy)}
+    .btn.secondary{background:rgba(255,255,255,.10);color:#fff}
+    .notice{
+      margin-top:18px;padding:14px 16px;border-radius:12px;
+      background:rgba(255,255,255,.12);font-size:14px;position:relative;z-index:1
+    }
+    .section{margin-top:28px}
+    .section-title{font-size:24px;line-height:1.3;margin:0 0 14px;color:var(--navy);letter-spacing:-.025em}
+    .section-lead{margin:-4px 0 16px;color:var(--muted)}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .card{
+      background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+      padding:20px;box-shadow:0 5px 18px rgba(16,42,67,.05)
+    }
+    .card .label{font-size:13px;color:var(--muted);font-weight:800}
+    .card .value{font-size:22px;font-weight:900;color:var(--navy);margin-top:4px}
+    .card .small{font-size:13px;color:var(--muted);margin-top:4px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .panel{
+      background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+      padding:24px;box-shadow:0 5px 18px rgba(16,42,67,.05)
+    }
+    .panel h3{margin:0 0 12px;color:var(--navy);font-size:19px}
+    .checklist{list-style:none;padding:0;margin:0}
+    .checklist li{position:relative;padding:8px 0 8px 29px;border-bottom:1px dashed #e6ebf0}
+    .checklist li:last-child{border-bottom:0}
+    .checklist li:before{
+      content:"✓";position:absolute;left:0;top:8px;width:20px;height:20px;
+      border-radius:50%;background:var(--green);color:var(--teal);
+      font-size:13px;font-weight:900;text-align:center;line-height:20px
+    }
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:step}
+    .step{
+      counter-increment:step;background:#fff;border:1px solid var(--line);
+      border-radius:16px;padding:20px
+    }
+    .step:before{
+      content:counter(step);display:inline-grid;place-items:center;width:30px;height:30px;
+      border-radius:9px;background:var(--blue2);color:var(--blue);font-weight:900;margin-bottom:10px
+    }
+    .step strong{display:block;color:var(--navy);font-size:17px;margin-bottom:5px}
+    .step p{margin:0;color:#435466;font-size:14px}
+    .alert{
+      border-left:5px solid var(--red);background:var(--red-bg);border-radius:12px;
+      padding:16px 18px;margin-top:18px
+    }
+    .alert strong{color:var(--red)}
+    .tip{
+      border-left:5px solid #d49b00;background:var(--gold);border-radius:12px;
+      padding:16px 18px;margin-top:14px
+    }
+    .faq{display:grid;gap:10px}
+    details{
+      background:#fff;border:1px solid var(--line);border-radius:14px;
+      padding:0 18px;box-shadow:0 3px 12px rgba(16,42,67,.04)
+    }
+    summary{
+      cursor:pointer;font-weight:850;color:var(--navy);padding:17px 28px 17px 0;
+      list-style:none;position:relative
+    }
+    summary::-webkit-details-marker{display:none}
+    summary:after{content:"＋";position:absolute;right:0;top:15px;color:var(--blue);font-size:21px}
+    details[open] summary:after{content:"－"}
+    details .answer{padding:0 0 18px;color:#435466}
+    details .answer p{margin:0 0 8px}
+    .usecases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .usecase{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+    .usecase b{display:block;color:var(--navy);margin-bottom:6px}
+    .footer{
+      margin-top:30px;background:#eaf0f5;border-radius:16px;padding:20px;
+      color:#536576;font-size:13px
+    }
+    .footer a{color:var(--blue);font-weight:700}
+    .source-list{margin:8px 0 0;padding-left:18px}
+    .badge{
+      display:inline-block;padding:4px 9px;border-radius:999px;background:var(--green);
+      color:var(--teal);font-size:12px;font-weight:900;margin-bottom:10px
+    }
+    @media(max-width:850px){
+      .cards{grid-template-columns:repeat(2,1fr)}
+      .steps,.usecases{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:620px){
+      .wrap{padding:14px 12px 36px}
+      .hero{padding:30px 22px;border-radius:18px}
+      h1{font-size:29px}
+      .cards,.grid2,.steps,.usecases{grid-template-columns:1fr}
+      .card .value{font-size:20px}
+    }
+    @media print{
+      body{background:#fff}
+      .wrap{max-width:none;padding:0}
+      .hero,.panel,.card,.step,.usecase,details{box-shadow:none}
+      .actions{display:none}
+      details{break-inside:avoid}
+      details .answer{display:block}
+      .section{break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="eyebrow">교내 연구자 대상 안내</div>
+      <h1>ChatGPT for Academic Researchers<br>무료 이용 신청</h1>
+      <p>
+        OpenAI가 참여 대학의 자격 요건을 충족한 연구전담 교원 및 박사후연구원에게
+        연구팀 전용 ChatGPT 워크스페이스를 12개월간 무료로 제공합니다.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="https://chatgpt.com/sophia/verification" target="_blank" rel="noopener">신청 페이지 열기</a>
+        <a class="btn secondary" href="https://help.openai.com/en/articles/20001406" target="_blank" rel="noopener">공식 FAQ 확인</a>
+      </div>
+      <div class="notice">
+        대상 기관 여부는 신청 페이지의 최신 기관 목록에서 확인해야 합니다. 자격요건 충족은 신청 자격을 의미하며, 최종 승인을 보장하지 않습니다.
+      </div>
+    </header>
+
+    <section class="section">
+      <h2 class="section-title">한눈에 보기</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="label">무료 이용 기간</div>
+          <div class="value">12개월</div>
+          <div class="small">자동 유료 갱신 없음</div>
+        </div>
+        <div class="card">
+          <div class="label">워크스페이스 인원</div>
+          <div class="value">최대 5명</div>
+          <div class="small">소유자 1명 + 협업자 4명</div>
+        </div>
+        <div class="card">
+          <div class="label">일반 심사 기간</div>
+          <div class="value">약 1–2주</div>
+          <div class="small">선정 시 설정 안내 발송</div>
+        </div>
+        <div class="card">
+          <div class="label">데이터 보호</div>
+          <div class="value">비즈니스급</div>
+          <div class="small">기본적으로 모델 학습에 미사용</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section grid2">
+      <div class="panel">
+        <span class="badge">신청 자격</span>
+        <h3>다음 조건을 모두 확인하세요</h3>
+        <ul class="checklist">
+          <li>대상 대학·지원 국가 소속 연구전담 교원 또는 박사후연구원</li>
+          <li>최근 3년 내 arXiv, bioRxiv 또는 ChemRxiv에 등록된 본인 저자 논문 보유</li>
+          <li>논문 분야가 생명과학, 화학·재료, 컴퓨터과학, 지구·행성과학, 공학, 수학 또는 물리학에 해당</li>
+          <li>ChatGPT를 학술연구 목적으로 활용할 계획</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="badge">준비 사항</span>
+        <h3>신청 전에 미리 준비하세요</h3>
+        <ul class="checklist">
+          <li>대학 기관 이메일과 동일한 이메일로 만든 ChatGPT 계정</li>
+          <li>최근 3년 내 등록된 논문 링크 및 연구 분야 정보</li>
+          <li>현재 연구와 ChatGPT 활용 계획에 대한 간단한 설명</li>
+          <li>승인 후 0달러 결제 확인에 사용할 유효한 결제카드</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">신청 절차</h2>
+      <p class="section-lead">소속 인증부터 워크스페이스 개설까지 다음 순서로 진행됩니다.</p>
+      <div class="steps">
+        <div class="step">
+          <strong>기관 이메일로 로그인</strong>
+          <p>신청에 사용할 대학 이메일과 ChatGPT 계정 이메일이 반드시 같아야 합니다.</p>
+        </div>
+        <div class="step">
+          <strong>SheerID 소속 인증</strong>
+          <p>자동 확인이 어려우면 재직·소속 증빙서류 제출을 요구할 수 있습니다. VPN은 해제하세요.</p>
+        </div>
+        <div class="step">
+          <strong>연구정보 입력</strong>
+          <p>연구 분야, 논문 또는 관련 연구성과, 학술연구 활용 계획을 작성합니다.</p>
+        </div>
+        <div class="step">
+          <strong>OpenAI 심사</strong>
+          <p>일반적인 심사 기간은 약 1–2주이며, 선정된 신청자에게 설정 안내가 발송됩니다.</p>
+        </div>
+        <div class="step">
+          <strong>0달러 결제 확인</strong>
+          <p>유효한 결제카드가 필요하지만 무료기간의 결제 합계는 0달러이며 비용이 청구되지 않습니다.</p>
+        </div>
+        <div class="step">
+          <strong>연구팀 개설·초대</strong>
+          <p>동일 기관의 검증된 협업자를 최대 4명까지 초대할 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="alert">
+        <strong>가장 흔한 인증 오류</strong><br>
+        ChatGPT 계정 이메일과 SheerID에서 인증하는 대학 이메일이 다르면 인증에 실패합니다.
+        오류가 발생했다면 해당 대학 이메일의 ChatGPT 계정으로 다시 로그인한 뒤 인증을 재시도하세요.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">무엇을 이용할 수 있나요?</h2>
+      <div class="usecases">
+        <div class="usecase"><b>고급 연구 지원</b>지원되는 ChatGPT 모델과 도구, 확장된 Deep Research, 더 높은 사용 한도 및 큰 문맥창</div>
+        <div class="usecase"><b>연구 실행</b>Codex를 통한 코드 작성·디버깅, 데이터 분석, 재현 가능한 연구 워크플로 구성</div>
+        <div class="usecase"><b>연구 생산성</b>문헌 검토, 연구비 신청서, 논문 초안, 연구성과 설명자료 작성 지원</div>
+      </div>
+      <div class="tip">
+        제공 한도는 ChatGPT Pro와 같은 사용률 제한을 따르지만 무제한은 아닙니다. 모델·기능 및 세부 한도는 변경될 수 있으며, OpenAI API 크레딧은 포함되지 않습니다.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">자주 묻는 질문</h2>
+      <div class="faq">
+        <details open>
+          <summary>정말 무료인가요?</summary>
+          <div class="answer">
+            승인된 워크스페이스에는 최대 5개 좌석이 12개월간 무료로 제공됩니다.
+            워크스페이스 소유자가 결제카드를 등록해야 하지만 무료기간의 결제 합계는 0달러입니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>12개월 후 자동으로 결제되나요?</summary>
+          <div class="answer">
+            자동으로 유료 갱신되지 않습니다. OpenAI는 종료 전에 이용 가능한 후속 선택지를 안내하며,
+            별도 선택이 없으면 적용 가능한 유예기간 이후 워크스페이스가 비활성화됩니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>대학원생도 신청할 수 있나요?</summary>
+          <div class="answer">
+            공식 신청 대상은 현재 대상 기관의 연구전담 교원 또는 박사후연구원입니다.
+            협업자도 기관 소속 인증과 자격 확인을 통과해야 합니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>다른 대학 연구자를 협업자로 초대할 수 있나요?</summary>
+          <div class="answer">
+            아니요. 협업자는 워크스페이스 소유자와 동일한 기관에 소속되어야 하며,
+            최대 4명까지 초대할 수 있습니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>여러 연구팀 워크스페이스에 동시에 참여할 수 있나요?</summary>
+          <div class="answer">
+            아니요. 인증된 이메일 하나는 한 번에 하나의 ChatGPT for Academic Researchers
+            워크스페이스에만 속할 수 있습니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>기존 개인용 ChatGPT 계정은 어떻게 되나요?</summary>
+          <div class="answer">
+            연구자용 워크스페이스는 개인 워크스페이스와 분리되어 운영됩니다.
+            개인용 계정을 업그레이드하거나 대체하는 방식이 아닙니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>연구자료가 모델 학습에 사용되나요?</summary>
+          <div class="answer">
+            연구자용 워크스페이스 콘텐츠는 기본적으로 OpenAI 모델 학습에 사용되지 않습니다.
+            다만 워크스페이스 관리자는 접근, 내보내기, 감사, 보존, 삭제 및 모델 개선을 위한
+            데이터 공유 설정 등을 관리할 수 있습니다. 대학의 연구윤리·보안·개인정보 규정은 별도로 준수해야 합니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>API도 무료로 사용할 수 있나요?</summary>
+          <div class="answer">
+            아니요. 이 프로그램은 ChatGPT 이용권을 제공하며 OpenAI API 크레딧은 포함하지 않습니다.
+          </div>
+        </details>
+
+        <details>
+          <summary>인증이나 신청에 문제가 생기면 어디에 문의하나요?</summary>
+          <div class="answer">
+            먼저 SheerID 화면에 표시되는 지원 절차를 이용하세요. 해결되지 않으면 OpenAI 도움말 센터의
+            채팅 위젯을 통해 지원 티켓을 제출할 수 있습니다.
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="section grid2">
+      <div class="panel">
+        <h3>연구 활용 예시</h3>
+        <ul class="checklist">
+          <li>연구질문 구체화 및 가설 검토</li>
+          <li>문헌 검토와 연구동향 정리</li>
+          <li>코드 작성·오류 점검·데이터 분석</li>
+          <li>연구비 신청서 및 논문 초안 작성</li>
+          <li>연구성과 발표·홍보자료 제작</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>사용 시 주의사항</h3>
+        <ul class="checklist">
+          <li>생성된 정보·인용·분석 결과는 원문과 원자료로 검증</li>
+          <li>미공개 연구자료와 개인정보 입력 전 내부 규정 확인</li>
+          <li>AI 활용 사실의 공개·표기는 학술지와 연구기관 지침 준수</li>
+          <li>최종 연구 판단과 결과에 대한 책임은 연구자에게 있음</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <strong>공식 안내 및 출처</strong>
+      <ul class="source-list">
+        <li><a href="https://chatgpt.com/sophia/verification" target="_blank" rel="noopener">ChatGPT for Academic Researchers 신청 페이지</a></li>
+        <li><a href="https://help.openai.com/en/articles/20001406" target="_blank" rel="noopener">OpenAI 도움말 센터: 자격·신청 절차·FAQ</a></li>
+        <li><a href="https://openai.com/index/chatgpt-for-academic-researchers/" target="_blank" rel="noopener">OpenAI 공식 프로그램 소개</a></li>
+      </ul>
+      <p>
+        본 안내는 2026년 7월 31일 확인한 OpenAI 공식 자료를 기준으로 작성했습니다.
+        대상 기관, 제공 기능, 사용 한도 및 정책은 변경될 수 있으므로 신청 시 최신 공식 안내를 확인하세요.
+        프로그램의 심사·승인·계정 발급 및 기술지원은 OpenAI와 해당 인증기관이 담당합니다.
+      </p>
+      <p><strong>ERICA학술정보관 학술정보팀</strong></p>
+    </footer>
+  </main>
+</body>
+</html>

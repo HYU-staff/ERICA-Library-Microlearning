@@ -33,6 +33,39 @@ const worker = {
     const encodedName = request.headers.get("oai-authenticated-user-full-name");
     const name = encodedName && request.headers.get("oai-authenticated-user-full-name-encoding") === "percent-encoded-utf-8" ? decodeURIComponent(encodedName) : null;
 
+    if (url.pathname === "/api/videos" && request.method === "GET") {
+      await ensureAnalyticsSchema(env.DB);
+      const rows = await env.DB.prepare("SELECT id, title, description, minutes, media_key AS mediaKey, audiences, levels, topics FROM content_videos WHERE active = 1 ORDER BY created_at DESC").all<{
+        id:number; title:string; description:string; minutes:number; mediaKey:string; audiences:string; levels:string; topics:string;
+      }>();
+      return Response.json(rows.results.map((video) => ({
+        ...video,
+        audiences: JSON.parse(video.audiences),
+        levels: JSON.parse(video.levels),
+        topics: JSON.parse(video.topics),
+      })));
+    }
+
+    if (url.pathname === "/api/admin/videos" && request.method === "POST") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
+      const body = await request.json<{ title?:string; description?:string; minutes?:number; mediaKey?:string; audiences?:string[]; levels?:string[]; topics?:string[] }>();
+      if (!body.title?.trim() || !body.description?.trim() || !body.mediaKey || !Number.isInteger(body.minutes) || (body.minutes ?? 0) < 1 || !body.audiences?.length || !body.levels?.length || !body.topics?.length) {
+        return Response.json({ error: "Invalid video metadata" }, { status: 400 });
+      }
+      const allowedAudiences = ["학부생", "대학원생", "교직원"];
+      const allowedLevels = ["입문", "기초", "심화"];
+      const allowedTopics = ["도서관 이용", "자료검색", "학술정보", "연구윤리", "연구도구", "전자자료"];
+      if (body.audiences.some((item) => !allowedAudiences.includes(item)) || body.levels.some((item) => !allowedLevels.includes(item)) || body.topics.some((item) => !allowedTopics.includes(item))) {
+        return Response.json({ error: "Invalid recommendation categories" }, { status: 400 });
+      }
+      await env.DB.prepare("INSERT INTO content_videos (title, description, minutes, media_key, audiences, levels, topics, created_by, created_at, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
+        .bind(body.title.trim(), body.description.trim(), body.minutes, body.mediaKey, JSON.stringify(body.audiences), JSON.stringify(body.levels), JSON.stringify(body.topics), email, new Date().toISOString()).run();
+      return Response.json({ ok: true });
+    }
+
     if (url.pathname === "/api/analytics/event" && request.method === "POST") {
       if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
@@ -105,9 +138,10 @@ const worker = {
     }
 
     if (url.pathname.startsWith("/api/video-upload/")) {
-      if (!request.headers.get("oai-authenticated-user-email")) {
-        return Response.json({ error: "Authentication required" }, { status: 401 });
-      }
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
       const action = url.pathname.split("/").pop();
       const key = url.searchParams.get("key");
       if (!key) return Response.json({ error: "Missing key" }, { status: 400 });
@@ -163,6 +197,8 @@ async function ensureAnalyticsSchema(db: D1Database) {
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_type_idx ON analytics_events (event_type)"),
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_created_idx ON analytics_events (created_at)"),
     db.prepare("CREATE TABLE IF NOT EXISTS site_admins (email TEXT PRIMARY KEY NOT NULL, created_at TEXT NOT NULL)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS content_videos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, minutes INTEGER NOT NULL, media_key TEXT NOT NULL UNIQUE, audiences TEXT NOT NULL, levels TEXT NOT NULL, topics TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS content_videos_created_idx ON content_videos (created_at)"),
   ]);
 }
 

@@ -24,3 +24,19 @@ export const siteAdmins = sqliteTable("site_admins", {
   email: text("email").primaryKey(),
   createdAt: text("created_at").notNull(),
 });
+
+export const contentVideos = sqliteTable("content_videos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  minutes: integer("minutes").notNull(),
+  mediaKey: text("media_key").notNull().unique(),
+  audiences: text("audiences").notNull(),
+  levels: text("levels").notNull(),
+  topics: text("topics").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+}, (table) => [
+  index("content_videos_created_idx").on(table.createdAt),
+]);

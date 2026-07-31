@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Lang = "ko" | "en";
-type Video = { title: string; topic: string; level: "입문" | "기초" | "심화"; levels?: ("입문" | "기초" | "심화")[]; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
+type Video = { title: string; topic: string; topics?: string[]; level: "입문" | "기초" | "심화"; levels?: ("입문" | "기초" | "심화")[]; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
 
 const videos: Video[] = [
   { title:"연구자를 위한 학술정보관 이용 가이드", topic:"학술정보", level:"입문", levels:["입문","기초"], audience:["대학원생","교직원"], minutes:15, color:"coral", mark:"R1", description:"대학원생과 교직원이 학술정보관의 연구 지원 서비스를 처음부터 차근차근 활용하도록 안내해요.", mediaKey:"researcher-academic-library-guide.mp4" },
@@ -11,12 +11,12 @@ const videos: Video[] = [
   { title:"학정관 시설안내", topic:"도서관 이용", level:"입문", audience:["학부생"], minutes:6, color:"mint", mark:"H2", description:"열람 공간과 주요 시설의 위치와 이용 방법을 둘러봐요.", mediaKey:"hakjeonggwan-facilities.mp4" },
   { title:"학정관 자료이용", topic:"자료검색", level:"기초", audience:["학부생"], minutes:12, color:"blue", mark:"H3", description:"학정관 자료를 찾고 대출하며 활용하는 과정을 차근차근 알아봐요.", mediaKey:"hakjeonggwan-resources.mp4" },
   { title:"학정관 꿀팁", topic:"도서관 이용", level:"기초", audience:["학부생"], minutes:7, color:"violet", mark:"H4", description:"학부생이 알아두면 유용한 학정관 이용 팁을 모았어요.", mediaKey:"hakjeonggwan-tips.mp4" },
-  { title:"도서관, 처음이라면", topic:"도서관 이용", level:"입문", audience:["학부생","대학원생","교직원","지역주민"], minutes:7, color:"mint", mark:"01", description:"대출부터 좌석 예약까지, 꼭 필요한 이용법만 빠르게 익혀요." },
+  { title:"도서관, 처음이라면", topic:"도서관 이용", level:"입문", audience:["학부생","대학원생","교직원"], minutes:7, color:"mint", mark:"01", description:"대출부터 좌석 예약까지, 꼭 필요한 이용법만 빠르게 익혀요." },
   { title:"과제 자료를 더 잘 찾는 법", topic:"자료검색", level:"기초", audience:["학부생"], minutes:12, color:"blue", mark:"02", description:"주제어 만들기와 통합검색 활용법을 실제 과제로 연습해요." },
   { title:"학술 DB 검색 전략", topic:"학술정보", level:"심화", audience:["대학원생","교직원"], minutes:18, color:"violet", mark:"03", description:"검색식을 설계하고 국내외 학술 DB를 효율적으로 탐색해요." },
   { title:"표절 없이 인용하기", topic:"연구윤리", level:"기초", audience:["학부생","대학원생"], minutes:10, color:"coral", mark:"04", description:"직접·간접 인용과 참고문헌 작성의 핵심을 알아봐요." },
   { title:"논문 작성을 위한 EndNote", topic:"연구도구", level:"심화", audience:["대학원생","교직원"], minutes:22, color:"yellow", mark:"05", description:"서지정보 수집부터 참고문헌 자동 생성까지 따라 해요." },
-  { title:"전자책과 오디오북 즐기기", topic:"전자자료", level:"입문", audience:["학부생","지역주민"], minutes:6, color:"green", mark:"06", description:"모바일에서도 편하게 전자자료를 이용하는 방법을 안내해요." },
+  { title:"전자책과 오디오북 즐기기", topic:"전자자료", level:"입문", audience:["학부생"], minutes:6, color:"green", mark:"06", description:"모바일에서도 편하게 전자자료를 이용하는 방법을 안내해요." },
 ];
 
 const enVideo: Record<string, { title:string; description:string }> = {
@@ -34,13 +34,12 @@ const enVideo: Record<string, { title:string; description:string }> = {
 };
 
 const topicNames: Record<string,string> = { "전체":"All", "도서관 이용":"Library Basics", "자료검색":"Searching", "학술정보":"Academic Research", "연구윤리":"Research Ethics", "연구도구":"Research Tools", "전자자료":"Digital Resources" };
-const identityNames: Record<string,string> = { "학부생":"Undergraduate", "대학원생":"Graduate Student", "교직원":"Faculty & Staff", "지역주민":"Community Member" };
+const identityNames: Record<string,string> = { "학부생":"Undergraduate", "대학원생":"Graduate Student", "교직원":"Faculty & Staff" };
 const levelNames: Record<string,string> = { "입문":"Starter", "기초":"Beginner", "심화":"Advanced" };
 const identities = [
   { name:"학부생", icon:"✦", ko:"과제와 시험을 위한 자료 찾기", en:"Find sources for assignments and exams" },
   { name:"대학원생", icon:"⌁", ko:"논문 검색과 연구 도구 활용", en:"Search papers and use research tools" },
   { name:"교직원", icon:"◫", ko:"수업·연구 지원 자료 활용", en:"Find resources for teaching and research" },
-  { name:"지역주민", icon:"○", ko:"생활 속 독서와 전자자료 이용", en:"Enjoy reading and digital resources" },
 ];
 const topics = ["전체","도서관 이용","자료검색","학술정보","연구윤리","연구도구","전자자료"];
 
@@ -57,6 +56,7 @@ export default function Home() {
   const [topic,setTopic] = useState("전체");
   const [showResult,setShowResult] = useState(false);
   const [saved,setSaved] = useState<string[]>([]);
+  const [uploadedVideos,setUploadedVideos] = useState<Video[]>([]);
   const t = {
     ...copy[lang],
     brand: lang === "ko" ? "학정관 조각공부" : "Hakjeonggwan Microlearning",
@@ -65,9 +65,11 @@ export default function Home() {
   const displayLevel = (value:string)=>lang==="ko"?value:levelNames[value];
   const displayTopic = (value:string)=>lang==="ko"?value:topicNames[value];
   useEffect(()=>{ document.documentElement.lang=lang; },[lang]);
+  useEffect(()=>{ void fetch("/api/videos",{cache:"no-store"}).then((response)=>response.ok?response.json():[]).then((items:Array<{id:number;title:string;description:string;minutes:number;mediaKey:string;audiences:string[];levels:Video["level"][];topics:string[]}>)=>setUploadedVideos(items.map((item,index)=>({title:item.title,description:item.description,minutes:item.minutes,mediaKey:item.mediaKey,audience:item.audiences,levels:item.levels,level:item.levels[0],topics:item.topics,topic:item.topics[0],color:["green","blue","violet","coral","mint"][index%5],mark:`NEW${index+1}`})))).catch(()=>setUploadedVideos([])); },[]);
 
-  const recommendation = useMemo(()=>[...videos].sort((a,b)=>{ const score=(v:Video)=>(v.audience.includes(identity)?3:0)+((v.levels??[v.level]).includes(level)?2:0)+(v.topic===interest?4:0)+(v.mediaKey&&v.audience.includes(identity)&&(v.levels??[v.level]).includes(level)?5:0); return score(b)-score(a); }).slice(0,3),[identity,level,interest]);
-  const filtered = topic==="전체"?videos:videos.filter((video)=>video.topic===topic);
+  const allVideos = useMemo(()=>[...uploadedVideos,...videos],[uploadedVideos]);
+  const recommendation = useMemo(()=>[...allVideos].sort((a,b)=>{ const score=(v:Video)=>(v.audience.includes(identity)?3:0)+((v.levels??[v.level]).includes(level)?2:0)+((v.topics??[v.topic]).includes(interest)?4:0)+(v.mediaKey&&v.audience.includes(identity)&&(v.levels??[v.level]).includes(level)?5:0); return score(b)-score(a); }).slice(0,3),[allVideos,identity,level,interest]);
+  const filtered = topic==="전체"?allVideos:allVideos.filter((video)=>(video.topics??[video.topic]).includes(topic));
   const toggleSave=(title:string)=>setSaved((current)=>current.includes(title)?current.filter((item)=>item!==title):[...current,title]);
   const chooseLang=(next:Lang)=>{ setLang(next); setShowResult(false); };
   const runRecommendation=()=>{ setShowResult(true); requestAnimationFrame(()=>document.querySelector("#results")?.scrollIntoView({behavior:"smooth",block:"start"})); };
@@ -95,5 +97,5 @@ export default function Home() {
 function VideoCard({video,lang,saved,onSave}:{video:Video;lang:Lang;saved:boolean;onSave:()=>void}){
   const [playing,setPlaying]=useState(false); const t=copy[lang]; const translated=enVideo[video.title]; const title=lang==="ko"?video.title:translated.title; const description=lang==="ko"?video.description:translated.description;
   const playVideo=()=>{ void fetch("/api/analytics/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({type:"video_view",videoTitle:video.title})}); video.mediaKey?setPlaying(true):alert(t.play(title)); };
-  return <article className="video-card"><div className={`thumbnail ${video.color} ${playing?"is-playing":""}`}>{playing&&video.mediaKey?<video controls autoPlay playsInline src={`/media/${encodeURIComponent(video.mediaKey)}`}/>:<><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={playVideo}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></>} </div><div className="video-info"><div className="tags"><span>{lang==="ko"?video.topic:topicNames[video.topic]}</span><span>{(video.levels??[video.level]).map((item)=>lang==="ko"?item:levelNames[item]).join(" · ")}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
+  return <article className="video-card"><div className={`thumbnail ${video.color} ${playing?"is-playing":""}`}>{playing&&video.mediaKey?<video controls autoPlay playsInline src={`/media/${encodeURIComponent(video.mediaKey)}`}/>:<><span className="thumbnail-number">{video.mark}</span><button className="play" aria-label={t.playLabel(title)} onClick={playVideo}>▶</button><span className="duration">{video.minutes}:00</span><div className="thumb-lines"><i/><i/><i/></div></>} </div><div className="video-info"><div className="tags"><span>{(video.topics??[video.topic]).map((item)=>lang==="ko"?item:topicNames[item]).join(" · ")}</span><span>{(video.levels??[video.level]).map((item)=>lang==="ko"?item:levelNames[item]).join(" · ")}</span></div><h3>{title}</h3><p>{description}</p><div className="card-bottom"><span>{video.audience.slice(0,2).map((item)=>lang==="ko"?item:identityNames[item]).join(" · ")}</span><button className={saved?"save active":"save"} aria-label={saved?t.unsave:t.save} onClick={onSave}>{saved?"♥":"♡"}</button></div></div></article>;
 }

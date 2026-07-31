@@ -2,27 +2,77 @@
 
 import { useEffect, useState } from "react";
 
-type UserRow = { email:string; name:string|null; firstSeen:string; lastSeen:string; accessCount:number; videoViews:number; lastVideo:string|null };
-type Dashboard = { metrics:{users:number;accesses:number;videoViews:number;activeToday:number}; users:UserRow[]; popularVideos:{title:string;views:number}[]; adminEmail:string };
-type VideoHistory = { user:{email:string;name:string|null}; events:{id:number;title:string;viewedAt:string}[]; grouped:{title:string;views:number;lastViewedAt:string}[] };
+type UserRow={email:string;name:string|null;firstSeen:string;lastSeen:string;accessCount:number;videoViews:number;lastVideo:string|null};
+type Dashboard={metrics:{users:number;accesses:number;videoViews:number;activeToday:number};users:UserRow[];popularVideos:{title:string;views:number}[];adminEmail:string};
+type VideoHistory={user:{email:string;name:string|null};events:{id:number;title:string;viewedAt:string}[];grouped:{title:string;views:number;lastViewedAt:string}[]};
+const audiences=["학부생","대학원생","교직원"];
+const levels=["입문","기초","심화"];
+const topics=["도서관 이용","자료검색","학술정보","연구윤리","연구도구","전자자료"];
 const formatDate=(value:string)=>new Intl.DateTimeFormat("ko-KR",{dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
 
 export default function AdminPage(){
-  const [data,setData]=useState<Dashboard|null>(null); const [error,setError]=useState(""); const [loading,setLoading]=useState(true); const [history,setHistory]=useState<VideoHistory|null>(null); const [historyLoading,setHistoryLoading]=useState(false);
+  const [data,setData]=useState<Dashboard|null>(null);
+  const [error,setError]=useState("");
+  const [loading,setLoading]=useState(true);
+  const [history,setHistory]=useState<VideoHistory|null>(null);
+  const [historyLoading,setHistoryLoading]=useState(false);
+  const [file,setFile]=useState<File|null>(null);
+  const [title,setTitle]=useState("");
+  const [description,setDescription]=useState("");
+  const [minutes,setMinutes]=useState(5);
+  const [selectedAudiences,setSelectedAudiences]=useState<string[]>(["학부생"]);
+  const [selectedLevels,setSelectedLevels]=useState<string[]>(["입문"]);
+  const [selectedTopics,setSelectedTopics]=useState<string[]>(["도서관 이용"]);
+  const [uploading,setUploading]=useState(false);
+  const [progress,setProgress]=useState(0);
+  const [uploadStatus,setUploadStatus]=useState("");
+
   const load=async()=>{setLoading(true);setError("");try{const response=await fetch("/api/analytics/summary",{cache:"no-store"});if(!response.ok)throw new Error(response.status===403?"관리자만 접근할 수 있습니다.":"통계를 불러오지 못했습니다.");setData(await response.json())}catch(err){setError(err instanceof Error?err.message:String(err))}finally{setLoading(false)}};
   const openHistory=async(user:UserRow)=>{if(!user.videoViews)return;setHistoryLoading(true);setHistory({user:{email:user.email,name:user.name},events:[],grouped:[]});try{const response=await fetch(`/api/analytics/user-videos?email=${encodeURIComponent(user.email)}`,{cache:"no-store"});if(!response.ok)throw new Error("열람 목록을 불러오지 못했습니다.");setHistory(await response.json())}catch(err){setError(err instanceof Error?err.message:String(err));setHistory(null)}finally{setHistoryLoading(false)}};
+  const toggle=(value:string,current:string[],setCurrent:(items:string[])=>void)=>setCurrent(current.includes(value)?current.filter((item)=>item!==value):[...current,value]);
+  const upload=async()=>{
+    if(!file||!title.trim()||!description.trim()||!selectedAudiences.length||!selectedLevels.length||!selectedTopics.length)return setUploadStatus("모든 항목을 입력하고 분류를 하나 이상 선택해 주세요.");
+    setUploading(true);setProgress(0);setUploadStatus("업로드를 준비하고 있습니다.");
+    const mediaKey=`admin-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"-")}`;
+    try{
+      const start=await fetch(`/api/video-upload/start?key=${encodeURIComponent(mediaKey)}`,{method:"POST"});
+      if(!start.ok)throw new Error(await start.text());
+      const {uploadId}=await start.json();
+      const chunkSize=20*1024*1024;
+      const totalParts=Math.ceil(file.size/chunkSize);
+      const parts:{partNumber:number;etag:string}[]=[];
+      for(let index=0;index<totalParts;index+=1){
+        const partNumber=index+1;
+        setUploadStatus(`영상 업로드 중 · ${partNumber}/${totalParts}`);
+        const response=await fetch(`/api/video-upload/part?key=${encodeURIComponent(mediaKey)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,{method:"PUT",body:file.slice(index*chunkSize,Math.min(file.size,(index+1)*chunkSize))});
+        if(!response.ok)throw new Error(await response.text());
+        parts.push(await response.json());setProgress(Math.round((partNumber/totalParts)*90));
+      }
+      const complete=await fetch(`/api/video-upload/complete?key=${encodeURIComponent(mediaKey)}&uploadId=${encodeURIComponent(uploadId)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({parts})});
+      if(!complete.ok)throw new Error(await complete.text());
+      const metadata=await fetch("/api/admin/videos",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({title,description,minutes,mediaKey,audiences:selectedAudiences,levels:selectedLevels,topics:selectedTopics})});
+      if(!metadata.ok)throw new Error(await metadata.text());
+      setProgress(100);setUploadStatus("신규 영상이 등록되어 추천과 영상 보관함에 반영되었습니다.");
+      setFile(null);setTitle("");setDescription("");setMinutes(5);
+      const input=document.querySelector<HTMLInputElement>("#admin-video-file");if(input)input.value="";
+    }catch(err){setUploadStatus(`업로드 실패: ${err instanceof Error?err.message:String(err)}`)}finally{setUploading(false)}
+  };
   useEffect(()=>{void load()},[]);
   useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setHistory(null)};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close)},[]);
 
   return <main className="admin-page">
     <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학정관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기 ↗</a></div></header>
-    <section className="admin-shell"><div className="admin-heading"><div><p className="kicker">LEARNING ANALYTICS</p><h1>이용 현황</h1><p>영상 열람 건수를 누르면 해당 이용자의 상세 열람 목록을 확인할 수 있습니다.</p></div><button onClick={load} disabled={loading}>{loading?"불러오는 중…":"새로고침"}</button></div>
-      {error&&<div className="admin-error">{error}</div>}{data&&<><div className="metric-grid"><Metric label="전체 이용자" value={data.metrics.users} suffix="명"/><Metric label="누적 접근" value={data.metrics.accesses} suffix="회"/><Metric label="영상 열람" value={data.metrics.videoViews} suffix="건"/><Metric label="최근 24시간 이용자" value={data.metrics.activeToday} suffix="명"/></div>
-      <div className="admin-grid"><section className="user-panel"><div className="panel-title"><div><p>USER DIRECTORY</p><h2>이용자 목록</h2></div><span>{data.users.length}명</span></div><div className="table-wrap"><table><thead><tr><th>이용자</th><th>최근 접속</th><th>접근</th><th>영상 열람</th><th>최근 열람 영상</th></tr></thead><tbody>{data.users.length?data.users.map((user)=><tr key={user.email}><td><strong>{user.name||user.email.split("@")[0]}</strong><small>{user.email}</small></td><td>{formatDate(user.lastSeen)}</td><td>{user.accessCount}회</td><td><button className={user.videoViews?"view-count active":"view-count"} disabled={!user.videoViews} onClick={()=>openHistory(user)}>{user.videoViews}건{user.videoViews>0&&<span>→</span>}</button></td><td>{user.lastVideo||"—"}</td></tr>):<tr><td colSpan={5} className="empty-cell">아직 기록된 이용자가 없습니다.</td></tr>}</tbody></table></div></section>
-      <aside className="popular-panel"><div className="panel-title"><div><p>POPULAR CONTENT</p><h2>인기 영상</h2></div></div>{data.popularVideos.length?<ol>{data.popularVideos.map((video,index)=><li key={video.title}><span>{String(index+1).padStart(2,"0")}</span><strong>{video.title}</strong><b>{video.views}회</b></li>)}</ol>:<div className="empty-chart"><i>▶</i><p>영상 열람 기록이 쌓이면<br/>순위가 표시됩니다.</p></div>}<footer>관리자 · {data.adminEmail}</footer></aside></div></>}
+    <section className="admin-shell">
+      <div className="admin-heading"><div><p className="kicker">LEARNING ANALYTICS</p><h1>이용 현황</h1><p>영상 등록과 이용자별 학습 현황을 한곳에서 관리합니다.</p></div><button onClick={load} disabled={loading}>{loading?"불러오는 중…":"새로고침"}</button></div>
+      {error&&<div className="admin-error">{error}</div>}
+      {data&&<><div className="metric-grid"><Metric label="전체 이용자" value={data.metrics.users} suffix="명"/><Metric label="누적 접근" value={data.metrics.accesses} suffix="회"/><Metric label="영상 열람" value={data.metrics.videoViews} suffix="건"/><Metric label="최근 24시간 이용자" value={data.metrics.activeToday} suffix="명"/></div>
+      <section className="admin-upload-panel"><div className="panel-title"><div><p>NEW CONTENT</p><h2>신규 영상 업로드</h2></div><span>관리자 전용</span></div><div className="admin-upload-form"><label className="wide">영상 파일<input id="admin-video-file" type="file" accept="video/mp4" onChange={(event)=>setFile(event.target.files?.[0]??null)}/><small>{file?`${file.name} · ${(file.size/1024/1024).toFixed(1)}MB`:"MP4 파일을 선택하세요."}</small></label><label>영상 제목<input value={title} onChange={(event)=>setTitle(event.target.value)} placeholder="영상 제목"/></label><label>재생 시간(분)<input type="number" min="1" value={minutes} onChange={(event)=>setMinutes(Math.max(1,Number(event.target.value)))}/></label><label className="wide">영상 소개<textarea value={description} onChange={(event)=>setDescription(event.target.value)} placeholder="이 영상에서 배울 내용을 입력하세요."/></label><ChoiceGroup title="추천 신분" values={audiences} selected={selectedAudiences} toggle={(value)=>toggle(value,selectedAudiences,setSelectedAudiences)}/><ChoiceGroup title="추천 수준" values={levels} selected={selectedLevels} toggle={(value)=>toggle(value,selectedLevels,setSelectedLevels)}/><ChoiceGroup title="주제" values={topics} selected={selectedTopics} toggle={(value)=>toggle(value,selectedTopics,setSelectedTopics)} wide/><div className="upload-submit wide"><div><div className="progress-track"><i style={{width:`${progress}%`}}/></div><output>{uploadStatus||"신분·수준·주제는 여러 개 선택할 수 있습니다."}</output></div><button disabled={uploading} onClick={upload}>{uploading?"업로드 중…":"영상 등록하기"}</button></div></div></section>
+      <div className="admin-grid"><section className="user-panel"><div className="panel-title"><div><p>USER DIRECTORY</p><h2>이용자 목록</h2></div><span>{data.users.length}명</span></div><div className="table-wrap"><table><thead><tr><th>이용자</th><th>최근 접속</th><th>접근</th><th>영상 열람</th><th>최근 열람 영상</th></tr></thead><tbody>{data.users.length?data.users.map((user)=><tr key={user.email}><td><strong>{user.name||user.email.split("@")[0]}</strong><small>{user.email}</small></td><td>{formatDate(user.lastSeen)}</td><td>{user.accessCount}회</td><td><button className={user.videoViews?"view-count active":"view-count"} disabled={!user.videoViews} onClick={()=>openHistory(user)}>{user.videoViews}건 {user.videoViews>0&&<span>↗</span>}</button></td><td>{user.lastVideo||"—"}</td></tr>):<tr><td colSpan={5} className="empty-cell">아직 기록된 이용자가 없습니다.</td></tr>}</tbody></table></div></section>
+      <aside className="popular-panel"><div className="panel-title"><div><p>POPULAR CONTENT</p><h2>인기 영상</h2></div></div>{data.popularVideos.length?<ol>{data.popularVideos.map((video,index)=><li key={video.title}><span>{String(index+1).padStart(2,"0")}</span><strong>{video.title}</strong><b>{video.views}회</b></li>)}</ol>:<div className="empty-chart"><i>↗</i><p>영상 열람 기록이 쌓이면<br/>순위가 표시됩니다.</p></div>}<footer>관리자 · {data.adminEmail}</footer></aside></div></>}
     </section>
-    {history&&<div className="history-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setHistory(null)}}><section className="history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title"><header><div><p>VIEWING HISTORY</p><h2 id="history-title">영상 열람 목록</h2><span>{history.user.name||history.user.email.split("@")[0]} · {history.user.email}</span></div><button aria-label="닫기" onClick={()=>setHistory(null)}>×</button></header>{historyLoading?<div className="history-loading">열람 기록을 불러오는 중…</div>:<><div className="history-summary">{history.grouped.map((video)=><article key={video.title}><span>▶</span><div><strong>{video.title}</strong><small>최근 열람 {formatDate(video.lastViewedAt)}</small></div><b>{video.views}회</b></article>)}</div><div className="history-events"><h3>시간순 상세 기록 <span>{history.events.length}건</span></h3>{history.events.map((event,index)=><div key={event.id}><i>{String(index+1).padStart(2,"0")}</i><strong>{event.title}</strong><time>{formatDate(event.viewedAt)}</time></div>)}</div></>}</section></div>}
+    {history&&<div className="history-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setHistory(null)}}><section className="history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title"><header><div><p>VIEWING HISTORY</p><h2 id="history-title">영상 열람 목록</h2><span>{history.user.name||history.user.email.split("@")[0]} · {history.user.email}</span></div><button aria-label="닫기" onClick={()=>setHistory(null)}>×</button></header>{historyLoading?<div className="history-loading">열람 기록을 불러오는 중…</div>:<><div className="history-summary">{history.grouped.map((video)=><article key={video.title}><span>▶</span><div><strong>{video.title}</strong><small>최근 열람 {formatDate(video.lastViewedAt)}</small></div><b>{video.views}회</b></article>)}</div><div className="history-events"><h3>시간별 상세 기록 <span>{history.events.length}건</span></h3>{history.events.map((event,index)=><div key={event.id}><i>{String(index+1).padStart(2,"0")}</i><strong>{event.title}</strong><time>{formatDate(event.viewedAt)}</time></div>)}</div></>}</section></div>}
   </main>;
 }
 
+function ChoiceGroup({title,values,selected,toggle,wide=false}:{title:string;values:string[];selected:string[];toggle:(value:string)=>void;wide?:boolean}){return <fieldset className={wide?"choice-group wide":"choice-group"}><legend>{title}<small>다중 선택</small></legend><div>{values.map((value)=><button type="button" key={value} className={selected.includes(value)?"active":""} aria-pressed={selected.includes(value)} onClick={()=>toggle(value)}><span>{selected.includes(value)?"✓":""}</span>{value}</button>)}</div></fieldset>}
 function Metric({label,value,suffix}:{label:string;value:number;suffix:string}){return <article className="metric-card"><span>{label}</span><strong>{value.toLocaleString()}<small>{suffix}</small></strong><i>↗</i></article>}

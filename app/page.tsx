@@ -72,7 +72,7 @@ export default function Home() {
   const filtered = topic==="전체"?allVideos:allVideos.filter((video)=>(video.topics??[video.topic]).includes(topic));
   const toggleSave=(title:string)=>setSaved((current)=>current.includes(title)?current.filter((item)=>item!==title):[...current,title]);
   const chooseLang=(next:Lang)=>{ setLang(next); setShowResult(false); };
-  const runRecommendation=()=>{ setShowResult(true); requestAnimationFrame(()=>document.querySelector("#results")?.scrollIntoView({behavior:"smooth",block:"start"})); };
+  const runRecommendation=()=>{ void fetch("/api/analytics/profile",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({identity})}); setShowResult(true); requestAnimationFrame(()=>document.querySelector("#results")?.scrollIntoView({behavior:"smooth",block:"start"})); };
 
   return <main className="dark-site">
     <header className="site-header">

@@ -79,6 +79,17 @@ const worker = {
       return Response.json({ ok: true });
     }
 
+    if (url.pathname === "/api/analytics/profile" && request.method === "POST") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const body = await request.json<{ identity?: string }>();
+      if (!body.identity || !["학부생", "대학원생", "교직원"].includes(body.identity)) return Response.json({ error: "Invalid identity" }, { status: 400 });
+      const now = new Date().toISOString();
+      await env.DB.prepare("INSERT INTO analytics_users (email, name, identity, first_seen, last_seen, access_count) VALUES (?, ?, ?, ?, ?, 0) ON CONFLICT(email) DO UPDATE SET name = COALESCE(excluded.name, analytics_users.name), identity = excluded.identity, last_seen = excluded.last_seen")
+        .bind(email, name, body.identity, now, now).run();
+      return Response.json({ ok: true });
+    }
+
     if (url.pathname === "/api/analytics/summary" && request.method === "GET") {
       if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
@@ -92,7 +103,7 @@ const worker = {
         env.DB.prepare("SELECT COALESCE(SUM(access_count), 0) AS value FROM analytics_users").first<{ value: number }>(),
         env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = 'video_view'").first<{ value: number }>(),
         env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_users WHERE last_seen >= ?").bind(new Date(Date.now() - 86400000).toISOString()).first<{ value: number }>(),
-        env.DB.prepare("SELECT u.email, u.name, u.first_seen AS firstSeen, u.last_seen AS lastSeen, u.access_count AS accessCount, COUNT(e.id) AS videoViews, MAX(e.video_title) AS lastVideo FROM analytics_users u LEFT JOIN analytics_events e ON e.email = u.email AND e.event_type = 'video_view' GROUP BY u.email ORDER BY u.last_seen DESC LIMIT 100").all(),
+        env.DB.prepare("SELECT u.email, u.name, u.identity, u.first_seen AS firstSeen, u.last_seen AS lastSeen, u.access_count AS accessCount, COUNT(e.id) AS videoViews, MAX(e.video_title) AS lastVideo FROM analytics_users u LEFT JOIN analytics_events e ON e.email = u.email AND e.event_type = 'video_view' GROUP BY u.email ORDER BY u.last_seen DESC LIMIT 100").all(),
         env.DB.prepare("SELECT video_title AS title, COUNT(*) AS views FROM analytics_events WHERE event_type = 'video_view' GROUP BY video_title ORDER BY views DESC LIMIT 8").all(),
       ]);
       return Response.json({ metrics: { users: usersCount?.value ?? 0, accesses: accessCount?.value ?? 0, videoViews: videoViews?.value ?? 0, activeToday: todayUsers?.value ?? 0 }, users: users.results, popularVideos: popularVideos.results, adminEmail: email });
@@ -191,7 +202,7 @@ const worker = {
 
 async function ensureAnalyticsSchema(db: D1Database) {
   await db.batch([
-    db.prepare("CREATE TABLE IF NOT EXISTS analytics_users (email TEXT PRIMARY KEY NOT NULL, name TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, access_count INTEGER NOT NULL DEFAULT 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS analytics_users (email TEXT PRIMARY KEY NOT NULL, name TEXT, identity TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, access_count INTEGER NOT NULL DEFAULT 0)"),
     db.prepare("CREATE TABLE IF NOT EXISTS analytics_events (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, email TEXT NOT NULL, event_type TEXT NOT NULL, video_title TEXT, created_at TEXT NOT NULL)"),
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_email_idx ON analytics_events (email)"),
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_type_idx ON analytics_events (event_type)"),

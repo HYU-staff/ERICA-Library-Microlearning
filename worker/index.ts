@@ -65,6 +65,22 @@ const worker = {
       return Response.json({ metrics: { users: usersCount?.value ?? 0, accesses: accessCount?.value ?? 0, videoViews: videoViews?.value ?? 0, activeToday: todayUsers?.value ?? 0 }, users: users.results, popularVideos: popularVideos.results, adminEmail: email });
     }
 
+    if (url.pathname === "/api/analytics/user-videos" && request.method === "GET") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
+      await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
+      const userEmail = url.searchParams.get("email");
+      if (!userEmail) return Response.json({ error: "Missing user email" }, { status: 400 });
+      const [user, events, grouped] = await Promise.all([
+        env.DB.prepare("SELECT email, name FROM analytics_users WHERE email = ?").bind(userEmail).first(),
+        env.DB.prepare("SELECT id, video_title AS title, created_at AS viewedAt FROM analytics_events WHERE email = ? AND event_type = 'video_view' ORDER BY created_at DESC LIMIT 200").bind(userEmail).all(),
+        env.DB.prepare("SELECT video_title AS title, COUNT(*) AS views, MAX(created_at) AS lastViewedAt FROM analytics_events WHERE email = ? AND event_type = 'video_view' GROUP BY video_title ORDER BY views DESC, lastViewedAt DESC").bind(userEmail).all(),
+      ]);
+      if (!user) return Response.json({ error: "User not found" }, { status: 404 });
+      return Response.json({ user, events: events.results, grouped: grouped.results });
+    }
+
     if (url.pathname.startsWith("/media/")) {
       const key = decodeURIComponent(url.pathname.slice("/media/".length));
       const rangeHeader = request.headers.get("range");

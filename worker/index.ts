@@ -82,11 +82,13 @@ const worker = {
     if (url.pathname === "/api/analytics/profile" && request.method === "POST") {
       if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
-      const body = await request.json<{ identity?: string }>();
+      const body = await request.json<{ identity?: string; affiliation?: string }>();
       if (!body.identity || !["학부생", "대학원생", "교직원"].includes(body.identity)) return Response.json({ error: "Invalid identity" }, { status: 400 });
+      const allowedAffiliations = ["공학대학", "소프트웨어융합대학", "약학대학", "첨단융합대학", "글로벌문화통상대학", "커뮤니케이션&컬처대학", "경상대학", "디자인대학", "예체능대학", "LIONS칼리지", "기타"];
+      if (body.affiliation && !allowedAffiliations.includes(body.affiliation)) return Response.json({ error: "Invalid affiliation" }, { status: 400 });
       const now = new Date().toISOString();
-      await env.DB.prepare("INSERT INTO analytics_users (email, name, identity, first_seen, last_seen, access_count) VALUES (?, ?, ?, ?, ?, 0) ON CONFLICT(email) DO UPDATE SET name = COALESCE(excluded.name, analytics_users.name), identity = excluded.identity, last_seen = excluded.last_seen")
-        .bind(email, name, body.identity, now, now).run();
+      await env.DB.prepare("INSERT INTO analytics_users (email, name, identity, affiliation, first_seen, last_seen, access_count) VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT(email) DO UPDATE SET name = COALESCE(excluded.name, analytics_users.name), identity = excluded.identity, affiliation = COALESCE(excluded.affiliation, analytics_users.affiliation), last_seen = excluded.last_seen")
+        .bind(email, name, body.identity, body.affiliation ?? null, now, now).run();
       return Response.json({ ok: true });
     }
 
@@ -202,7 +204,7 @@ const worker = {
 
 async function ensureAnalyticsSchema(db: D1Database) {
   await db.batch([
-    db.prepare("CREATE TABLE IF NOT EXISTS analytics_users (email TEXT PRIMARY KEY NOT NULL, name TEXT, identity TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, access_count INTEGER NOT NULL DEFAULT 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS analytics_users (email TEXT PRIMARY KEY NOT NULL, name TEXT, identity TEXT, affiliation TEXT, first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, access_count INTEGER NOT NULL DEFAULT 0)"),
     db.prepare("CREATE TABLE IF NOT EXISTS analytics_events (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, email TEXT NOT NULL, event_type TEXT NOT NULL, video_title TEXT, created_at TEXT NOT NULL)"),
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_email_idx ON analytics_events (email)"),
     db.prepare("CREATE INDEX IF NOT EXISTS analytics_events_type_idx ON analytics_events (event_type)"),

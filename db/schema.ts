@@ -4,6 +4,7 @@ export const analyticsUsers = sqliteTable("analytics_users", {
   email: text("email").primaryKey(),
   name: text("name"),
   identity: text("identity"),
+  affiliation: text("affiliation"),
   firstSeen: text("first_seen").notNull(),
   lastSeen: text("last_seen").notNull(),
   accessCount: integer("access_count").notNull().default(0),

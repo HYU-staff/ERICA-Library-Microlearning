@@ -57,6 +57,7 @@ export default function Home() {
   const [showResult,setShowResult] = useState(false);
   const [saved,setSaved] = useState<string[]>([]);
   const [uploadedVideos,setUploadedVideos] = useState<Video[]>([]);
+  const [identityReady,setIdentityReady] = useState(false);
   const t = {
     ...copy[lang],
     brand: lang === "ko" ? "학정관 조각공부" : "Hakjeonggwan Microlearning",
@@ -65,6 +66,7 @@ export default function Home() {
   const displayLevel = (value:string)=>lang==="ko"?value:levelNames[value];
   const displayTopic = (value:string)=>lang==="ko"?value:topicNames[value];
   useEffect(()=>{ document.documentElement.lang=lang; },[lang]);
+  useEffect(()=>{ const stored=window.localStorage.getItem("hakjeonggwan.identity"); if(["학부생","대학원생","교직원"].includes(stored??"")){setIdentity(stored!);setIdentityReady(true)}else{window.location.replace("/welcome")}},[]);
   useEffect(()=>{ void fetch("/api/videos",{cache:"no-store"}).then((response)=>response.ok?response.json():[]).then((items:Array<{id:number;title:string;description:string;minutes:number;mediaKey:string;audiences:string[];levels:Video["level"][];topics:string[]}>)=>setUploadedVideos(items.map((item,index)=>({title:item.title,description:item.description,minutes:item.minutes,mediaKey:item.mediaKey,audience:item.audiences,levels:item.levels,level:item.levels[0],topics:item.topics,topic:item.topics[0],color:["green","blue","violet","coral","mint"][index%5],mark:`NEW${index+1}`})))).catch(()=>setUploadedVideos([])); },[]);
 
   const allVideos = useMemo(()=>[...uploadedVideos,...videos],[uploadedVideos]);
@@ -74,6 +76,7 @@ export default function Home() {
   const chooseLang=(next:Lang)=>{ setLang(next); setShowResult(false); };
   const runRecommendation=()=>{ void fetch("/api/analytics/profile",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({identity})}); setShowResult(true); requestAnimationFrame(()=>document.querySelector("#results")?.scrollIntoView({behavior:"smooth",block:"start"})); };
 
+  if(!identityReady)return <main className="onboarding-loading" aria-label="이용자 정보를 확인하는 중"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span></main>;
   return <main className="dark-site">
     <header className="site-header">
       <a className="brand" href="#top" aria-label={`${t.brand} home`}><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>{t.brand}</span></a>

@@ -47,7 +47,10 @@ const worker = {
     }
 
     if (url.pathname === "/api/admin/videos" && request.method === "POST") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
       const body = await request.json<{ title?:string; description?:string; minutes?:number; mediaKey?:string; audiences?:string[]; levels?:string[]; topics?:string[] }>();
       if (!body.title?.trim() || !body.description?.trim() || !body.mediaKey || !Number.isInteger(body.minutes) || (body.minutes ?? 0) < 1 || !body.audiences?.length || !body.levels?.length || !body.topics?.length) {
         return Response.json({ error: "Invalid video metadata" }, { status: 400 });
@@ -59,7 +62,7 @@ const worker = {
         return Response.json({ error: "Invalid recommendation categories" }, { status: 400 });
       }
       await env.DB.prepare("INSERT INTO content_videos (title, description, minutes, media_key, audiences, levels, topics, created_by, created_at, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
-        .bind(body.title.trim(), body.description.trim(), body.minutes, body.mediaKey, JSON.stringify(body.audiences), JSON.stringify(body.levels), JSON.stringify(body.topics), email ?? "public", new Date().toISOString()).run();
+        .bind(body.title.trim(), body.description.trim(), body.minutes, body.mediaKey, JSON.stringify(body.audiences), JSON.stringify(body.levels), JSON.stringify(body.topics), email, new Date().toISOString()).run();
       return Response.json({ ok: true });
     }
 
@@ -90,7 +93,12 @@ const worker = {
     }
 
     if (url.pathname === "/api/analytics/summary" && request.method === "GET") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
+      const adminCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM site_admins").first<{ count: number }>();
+      if (!adminCount?.count) await env.DB.prepare("INSERT INTO site_admins (email, created_at) VALUES (?, ?)").bind(email, new Date().toISOString()).run();
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
 
       const [usersCount, accessCount, videoViews, todayUsers, users, popularVideos] = await Promise.all([
         env.DB.prepare("SELECT COUNT(*) AS value FROM analytics_users").first<{ value: number }>(),
@@ -100,11 +108,14 @@ const worker = {
         env.DB.prepare("SELECT u.email, u.name, u.identity, u.first_seen AS firstSeen, u.last_seen AS lastSeen, u.access_count AS accessCount, COUNT(e.id) AS videoViews, MAX(e.video_title) AS lastVideo FROM analytics_users u LEFT JOIN analytics_events e ON e.email = u.email AND e.event_type = 'video_view' GROUP BY u.email ORDER BY u.last_seen DESC LIMIT 100").all(),
         env.DB.prepare("SELECT video_title AS title, COUNT(*) AS views FROM analytics_events WHERE event_type = 'video_view' GROUP BY video_title ORDER BY views DESC LIMIT 8").all(),
       ]);
-      return Response.json({ metrics: { users: usersCount?.value ?? 0, accesses: accessCount?.value ?? 0, videoViews: videoViews?.value ?? 0, activeToday: todayUsers?.value ?? 0 }, users: users.results, popularVideos: popularVideos.results, adminEmail: "전체 공개" });
+      return Response.json({ metrics: { users: usersCount?.value ?? 0, accesses: accessCount?.value ?? 0, videoViews: videoViews?.value ?? 0, activeToday: todayUsers?.value ?? 0 }, users: users.results, popularVideos: popularVideos.results, adminEmail: email });
     }
 
     if (url.pathname === "/api/analytics/user-videos" && request.method === "GET") {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
       const userEmail = url.searchParams.get("email");
       if (!userEmail) return Response.json({ error: "Missing user email" }, { status: 400 });
       const [user, events, grouped] = await Promise.all([
@@ -140,7 +151,10 @@ const worker = {
     }
 
     if (url.pathname.startsWith("/api/video-upload/")) {
+      if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
+      const admin = await env.DB.prepare("SELECT email FROM site_admins WHERE email = ?").bind(email).first();
+      if (!admin) return Response.json({ error: "Administrator access required" }, { status: 403 });
       const action = url.pathname.split("/").pop();
       const key = url.searchParams.get("key");
       if (!key) return Response.json({ error: "Missing key" }, { status: 400 });

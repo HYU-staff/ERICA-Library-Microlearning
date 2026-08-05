@@ -243,7 +243,7 @@ async function recordPageAccess(db: D1Database, email: string, name: string | nu
 
 export default worker;
 
-const ADMIN_EMAILS = ["ranter@hanyang.ac.rk", "kalz@hanyang.ac.kr", "belief@hanyang.ac.kr"];
+const ADMIN_EMAILS = ["ranter@hanyang.ac.kr", "kalz@hanyang.ac.kr", "belief@hanyang.ac.kr"];
 const encoder = new TextEncoder();
 
 async function createAdminToken(email: string, secret: string) {

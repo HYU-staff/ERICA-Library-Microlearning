@@ -11,6 +11,11 @@ const topics=["도서관 이용","자료검색","학술정보","연구윤리","�
 const formatDate=(value:string)=>new Intl.DateTimeFormat("ko-KR",{dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
 
 export default function AdminPage(){
+  const [authenticated,setAuthenticated]=useState<boolean|null>(null);
+  const [loginEmail,setLoginEmail]=useState("");
+  const [loginPassword,setLoginPassword]=useState("");
+  const [loginError,setLoginError]=useState("");
+  const [loggingIn,setLoggingIn]=useState(false);
   const [data,setData]=useState<Dashboard|null>(null);
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(true);
@@ -37,7 +42,9 @@ export default function AdminPage(){
     return afterStart&&beforeEnd&&matchesIdentity;
   })??[],[data,fromDate,toDate,identityFilter]);
 
-  const load=async()=>{setLoading(true);setError("");try{const response=await fetch("/api/analytics/summary",{cache:"no-store"});if(!response.ok)throw new Error(response.status===403?"관리자만 접근할 수 있습니다.":"통계를 불러오지 못했습니다.");setData(await response.json())}catch(err){setError(err instanceof Error?err.message:String(err))}finally{setLoading(false)}};
+  const load=async()=>{setLoading(true);setError("");try{const response=await fetch("/api/analytics/summary",{cache:"no-store"});if(response.status===401){setAuthenticated(false);setData(null);return}if(!response.ok)throw new Error("통계를 불러오지 못했습니다.");setData(await response.json());setAuthenticated(true)}catch(err){setError(err instanceof Error?err.message:String(err))}finally{setLoading(false)}};
+  const login=async(event:React.FormEvent)=>{event.preventDefault();setLoggingIn(true);setLoginError("");try{const response=await fetch("/api/admin/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:loginEmail,password:loginPassword})});if(!response.ok){const body=await response.json().catch(()=>({}));throw new Error(body.error||"로그인에 실패했습니다.")}setLoginPassword("");setAuthenticated(true);await load()}catch(err){setLoginError(err instanceof Error?err.message:String(err))}finally{setLoggingIn(false)}};
+  const logout=async()=>{await fetch("/api/admin/logout",{method:"POST"});setAuthenticated(false);setData(null);setLoginPassword("")};
   const openHistory=async(user:UserRow)=>{if(!user.videoViews)return;setHistoryLoading(true);setHistory({user:{email:user.email,name:user.name},events:[],grouped:[]});try{const response=await fetch(`/api/analytics/user-videos?email=${encodeURIComponent(user.email)}`,{cache:"no-store"});if(!response.ok)throw new Error("열람 목록을 불러오지 못했습니다.");setHistory(await response.json())}catch(err){setError(err instanceof Error?err.message:String(err));setHistory(null)}finally{setHistoryLoading(false)}};
   const toggle=(value:string,current:string[],setCurrent:(items:string[])=>void)=>setCurrent(current.includes(value)?current.filter((item)=>item!==value):[...current,value]);
   const upload=async()=>{
@@ -67,8 +74,19 @@ export default function AdminPage(){
       const input=document.querySelector<HTMLInputElement>("#admin-video-file");if(input)input.value="";
     }catch(err){setUploadStatus(`업로드 실패: ${err instanceof Error?err.message:String(err)}`)}finally{setUploading(false)}
   };
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void fetch("/api/admin/session",{cache:"no-store"}).then((response)=>{if(response.ok){setAuthenticated(true);void load()}else{setAuthenticated(false);setLoading(false)}}).catch(()=>{setAuthenticated(false);setLoading(false)})},[]);
   useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setHistory(null)};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close)},[]);
+
+  if(authenticated!==true)return <main className="admin-page admin-login-page">
+    <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학정관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기</a></div></header>
+    <section className="admin-login-shell"><form className="admin-login-card" onSubmit={login}>
+      <p className="kicker">ADMINISTRATOR ACCESS</p><h1>관리자 로그인</h1><p>등록된 관리자 이메일과 비밀번호를 입력해 주세요.</p>
+      <label>이메일<input type="email" autoComplete="username" value={loginEmail} onChange={(event)=>setLoginEmail(event.target.value)} placeholder="name@hanyang.ac.kr" required/></label>
+      <label>비밀번호<input type="password" autoComplete="current-password" value={loginPassword} onChange={(event)=>setLoginPassword(event.target.value)} required/></label>
+      {loginError&&<div className="admin-login-error" role="alert">{loginError}</div>}
+      <button type="submit" disabled={loggingIn||authenticated===null}>{loggingIn?"확인 중…":authenticated===null?"로그인 확인 중…":"로그인"}</button>
+    </form></section>
+  </main>;
 
   return <main className="admin-page">
     <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학정관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기 ↗</a></div></header>

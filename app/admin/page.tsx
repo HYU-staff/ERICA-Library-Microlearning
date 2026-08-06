@@ -78,7 +78,7 @@ export default function AdminPage(){
   useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setHistory(null)};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close)},[]);
 
   if(authenticated!==true)return <main className="admin-page admin-login-page">
-    <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학정관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기</a></div></header>
+    <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학술정보관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기</a></div></header>
     <section className="admin-login-shell"><form className="admin-login-card" onSubmit={login}>
       <p className="kicker">ADMINISTRATOR ACCESS</p><h1>관리자 로그인</h1><p>등록된 관리자 이메일과 비밀번호를 입력해 주세요.</p>
       <label>이메일<input type="email" autoComplete="username" value={loginEmail} onChange={(event)=>setLoginEmail(event.target.value)} placeholder="name@hanyang.ac.kr" required/></label>
@@ -89,7 +89,7 @@ export default function AdminPage(){
   </main>;
 
   return <main className="admin-page">
-    <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학정관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기 ↗</a></div></header>
+    <header><a className="brand" href="/"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>학술정보관 조각공부</span></a><div><span>ADMIN</span><a href="/">사이트로 돌아가기 ↗</a></div></header>
     <section className="admin-shell">
       <div className="admin-heading"><div><p className="kicker">LEARNING ANALYTICS</p><h1>이용 현황</h1><p>영상 등록과 이용자별 학습 현황을 한곳에서 관리합니다.</p></div><button onClick={load} disabled={loading}>{loading?"불러오는 중…":"새로고침"}</button></div>
       {error&&<div className="admin-error">{error}</div>}

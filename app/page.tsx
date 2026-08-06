@@ -60,7 +60,7 @@ export default function Home() {
   const [identityReady,setIdentityReady] = useState(false);
   const t = {
     ...copy[lang],
-    brand: lang === "ko" ? "학정관 조각공부" : "Hakjeonggwan Microlearning",
+    brand: lang === "ko" ? "학술정보관 조각공부" : "Academic Library Microlearning",
   };
   const displayIdentity = (value:string)=>lang==="ko"?value:identityNames[value];
   const displayLevel = (value:string)=>lang==="ko"?value:levelNames[value];

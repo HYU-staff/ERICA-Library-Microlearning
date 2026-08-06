@@ -93,7 +93,7 @@ export default function Home() {
     {showResult&&<section className="result-section" id="results"><div className="result-intro"><p className="kicker">JUST FOR YOU</p><h2>{t.resultTitle(displayIdentity(identity)).split("\n").map((line,i)=><span key={line}>{line}{i===0&&<br/>}</span>)}</h2><p>{t.resultDesc(displayLevel(level),displayTopic(interest),recommendation.reduce((sum,video)=>sum+video.minutes,0))}</p></div><div className="path-list">{recommendation.map((video)=><VideoCard key={video.title} video={video} lang={lang} saved={saved.includes(video.title)} onSave={()=>toggleSave(video.title)}/>)}</div></section>}
 
     <section className="guide-section" id="guide"><div><p className="kicker">START SMALL, GROW DEEP</p><h2>{t.guideTitle.split("\n").map((line,i)=><span key={line}>{line}{i===0&&<br/>}</span>)}</h2></div><ol>{t.guides.map((guide,index)=><li key={guide[0]}><span>{index+1}</span><div><strong>{guide[0]}</strong><p>{guide[1]}</p></div></li>)}</ol></section>
-    <footer><a className="brand" href="#top"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>{t.brand}</span></a><p>{t.footer}</p><span>© 2026 LIBRARY LEARNING COMMONS</span></footer>
+    <footer><a className="brand" href="#top"><span className="brand-mark"><img src="/hyu-logo.png" alt="한양대학교"/></span><span>{t.brand}</span></a><p>{t.footer}</p><div className="footer-contact"><a href="https://information.hanyang.ac.kr/" target="_blank" rel="noreferrer">한양대학교 ERICA학술정보관 ↗</a><a href="mailto:ranter@hanyang.ac.kr">문의처 : ranter@hanyang.ac.kr</a><span>© 2026 LIBRARY LEARNING COMMONS</span></div></footer>
   </main>;
 }
 

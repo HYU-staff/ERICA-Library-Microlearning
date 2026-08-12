@@ -31,8 +31,6 @@ npm run build
 [학술정보관 조각공부](https://baeum-seojae-library.ranter30653.chatgpt.site/)
 
 [학술정보관 조각공부 관리자](https://baeum-seojae-library.ranter30653.chatgpt.site/admin)
- 
- 관리자 테스트 ID : ranter@hanyang.ac.kr PW : ericalibrary 
 
 ## 문의
 

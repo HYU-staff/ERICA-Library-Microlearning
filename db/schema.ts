@@ -36,6 +36,7 @@ export const contentVideos = sqliteTable("content_videos", {
   audiences: text("audiences").notNull(),
   levels: text("levels").notNull(),
   topics: text("topics").notNull(),
+  tags: text("tags").notNull().default("[]"),
   createdBy: text("created_by").notNull(),
   createdAt: text("created_at").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),

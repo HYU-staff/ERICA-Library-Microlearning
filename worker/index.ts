@@ -56,14 +56,15 @@ const worker = {
 
     if (url.pathname === "/api/videos" && request.method === "GET") {
       await ensureAnalyticsSchema(env.DB);
-      const rows = await env.DB.prepare("SELECT id, title, description, minutes, media_key AS mediaKey, audiences, levels, topics FROM content_videos WHERE active = 1 ORDER BY created_at DESC").all<{
-        id:number; title:string; description:string; minutes:number; mediaKey:string; audiences:string; levels:string; topics:string;
+      const rows = await env.DB.prepare("SELECT id, title, description, minutes, media_key AS mediaKey, audiences, levels, topics, tags FROM content_videos WHERE active = 1 ORDER BY created_at DESC").all<{
+        id:number; title:string; description:string; minutes:number; mediaKey:string; audiences:string; levels:string; topics:string; tags:string;
       }>();
       return Response.json(rows.results.map((video) => ({
         ...video,
         audiences: JSON.parse(video.audiences),
         levels: JSON.parse(video.levels),
         topics: JSON.parse(video.topics),
+        tags: JSON.parse(video.tags),
       })));
     }
 
@@ -71,7 +72,7 @@ const worker = {
       const adminEmail = await getAdminEmail(request, env.ADMIN_SESSION_SECRET);
       if (!adminEmail) return Response.json({ error: "Administrator login required" }, { status: 401 });
       await ensureAnalyticsSchema(env.DB);
-      const body = await request.json<{ title?:string; description?:string; minutes?:number; mediaKey?:string; audiences?:string[]; levels?:string[]; topics?:string[] }>();
+      const body = await request.json<{ title?:string; description?:string; minutes?:number; mediaKey?:string; audiences?:string[]; levels?:string[]; topics?:string[]; tags?:string[] }>();
       if (!body.title?.trim() || !body.description?.trim() || !body.mediaKey || !Number.isInteger(body.minutes) || (body.minutes ?? 0) < 1 || !body.audiences?.length || !body.levels?.length || !body.topics?.length) {
         return Response.json({ error: "Invalid video metadata" }, { status: 400 });
       }
@@ -81,8 +82,10 @@ const worker = {
       if (body.audiences.some((item) => !allowedAudiences.includes(item)) || body.levels.some((item) => !allowedLevels.includes(item)) || body.topics.some((item) => !allowedTopics.includes(item))) {
         return Response.json({ error: "Invalid recommendation categories" }, { status: 400 });
       }
-      await env.DB.prepare("INSERT INTO content_videos (title, description, minutes, media_key, audiences, levels, topics, created_by, created_at, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
-        .bind(body.title.trim(), body.description.trim(), body.minutes, body.mediaKey, JSON.stringify(body.audiences), JSON.stringify(body.levels), JSON.stringify(body.topics), adminEmail, new Date().toISOString()).run();
+      const tags = [...new Set((body.tags ?? []).map((tag) => tag.trim()).filter(Boolean))];
+      if (tags.length > 20 || tags.some((tag) => tag.length > 30 || tag.includes("#"))) return Response.json({ error: "Invalid tags" }, { status: 400 });
+      await env.DB.prepare("INSERT INTO content_videos (title, description, minutes, media_key, audiences, levels, topics, tags, created_by, created_at, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)")
+        .bind(body.title.trim(), body.description.trim(), body.minutes, body.mediaKey, JSON.stringify(body.audiences), JSON.stringify(body.levels), JSON.stringify(body.topics), JSON.stringify(tags), adminEmail, new Date().toISOString()).run();
       return Response.json({ ok: true });
     }
 
@@ -227,7 +230,7 @@ async function ensureAnalyticsSchema(db: D1Database) {
     db.prepare("CREATE TABLE IF NOT EXISTS site_admins (email TEXT PRIMARY KEY NOT NULL, created_at TEXT NOT NULL)"),
     db.prepare("INSERT OR IGNORE INTO site_admins (email, created_at) VALUES ('belief@hanyang.ac.kr', '2026-07-31T00:00:00.000Z')"),
     db.prepare("INSERT OR IGNORE INTO site_admins (email, created_at) VALUES ('kalz@hanyang.ac.kr', '2026-07-31T00:00:00.000Z')"),
-    db.prepare("CREATE TABLE IF NOT EXISTS content_videos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, minutes INTEGER NOT NULL, media_key TEXT NOT NULL UNIQUE, audiences TEXT NOT NULL, levels TEXT NOT NULL, topics TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS content_videos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, minutes INTEGER NOT NULL, media_key TEXT NOT NULL UNIQUE, audiences TEXT NOT NULL, levels TEXT NOT NULL, topics TEXT NOT NULL, tags TEXT NOT NULL DEFAULT '[]', created_by TEXT NOT NULL, created_at TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1)"),
     db.prepare("CREATE INDEX IF NOT EXISTS content_videos_created_idx ON content_videos (created_at)"),
   ]);
 }

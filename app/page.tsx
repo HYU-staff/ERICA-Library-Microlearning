@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Lang = "ko" | "en";
-type Video = { title: string; topic: string; topics?: string[]; level: "입문" | "기초" | "심화"; levels?: ("입문" | "기초" | "심화")[]; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
+type Video = { title: string; topic: string; topics?: string[]; tags?: string[]; level: "입문" | "기초" | "심화"; levels?: ("입문" | "기초" | "심화")[]; audience: string[]; minutes: number; color: string; mark: string; description: string; mediaKey?: string };
 
 const videos: Video[] = [
   { title:"연구자를 위한 학술정보관 이용 가이드", topic:"학술정보", level:"입문", levels:["입문","기초"], audience:["대학원생","교직원"], minutes:15, color:"coral", mark:"R1", description:"대학원생과 교직원이 학술정보관의 연구 지원 서비스를 처음부터 차근차근 활용하도록 안내해요.", mediaKey:"researcher-academic-library-guide.mp4" },
@@ -67,7 +67,7 @@ export default function Home() {
   const displayTopic = (value:string)=>lang==="ko"?value:topicNames[value];
   useEffect(()=>{ document.documentElement.lang=lang; },[lang]);
   useEffect(()=>{ const stored=window.localStorage.getItem("hakjeonggwan.identity"); const affiliation=window.localStorage.getItem("hakjeonggwan.affiliation"); if(["학부생","대학원생","교직원"].includes(stored??"")&&affiliation){setIdentity(stored!);setIdentityReady(true)}else{window.location.replace("/welcome")}},[]);
-  useEffect(()=>{ void fetch("/api/videos",{cache:"no-store"}).then((response)=>response.ok?response.json():[]).then((items:Array<{id:number;title:string;description:string;minutes:number;mediaKey:string;audiences:string[];levels:Video["level"][];topics:string[]}>)=>setUploadedVideos(items.map((item,index)=>({title:item.title,description:item.description,minutes:item.minutes,mediaKey:item.mediaKey,audience:item.audiences,levels:item.levels,level:item.levels[0],topics:item.topics,topic:item.topics[0],color:["green","blue","violet","coral","mint"][index%5],mark:`NEW${index+1}`})))).catch(()=>setUploadedVideos([])); },[]);
+  useEffect(()=>{ void fetch("/api/videos",{cache:"no-store"}).then((response)=>response.ok?response.json():[]).then((items:Array<{id:number;title:string;description:string;minutes:number;mediaKey:string;audiences:string[];levels:Video["level"][];topics:string[];tags:string[]}>)=>setUploadedVideos(items.map((item,index)=>({title:item.title,description:item.description,minutes:item.minutes,mediaKey:item.mediaKey,audience:item.audiences,levels:item.levels,level:item.levels[0],topics:item.topics,tags:item.tags,topic:item.topics[0],color:["green","blue","violet","coral","mint"][index%5],mark:`NEW${index+1}`})))).catch(()=>setUploadedVideos([])); },[]);
 
   const allVideos = useMemo(()=>[...uploadedVideos,...videos],[uploadedVideos]);
   const recommendation = useMemo(()=>[...allVideos].sort((a,b)=>{ const score=(v:Video)=>(v.audience.includes(identity)?3:0)+((v.levels??[v.level]).includes(level)?2:0)+((v.topics??[v.topic]).includes(interest)?4:0)+(v.mediaKey&&v.audience.includes(identity)&&(v.levels??[v.level]).includes(level)?5:0); return score(b)-score(a); }).slice(0,3),[allVideos,identity,level,interest]);
